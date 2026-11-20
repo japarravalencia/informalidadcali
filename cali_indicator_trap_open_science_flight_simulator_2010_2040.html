@@ -1,0 +1,2099 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Escaping the Indicator Trap — Cali VSM–SD Open Science Flight Simulator (2010–2040)</title>
+
+  <!-- Tailwind CSS CDN & Google Fonts (Inter + JetBrains Mono) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            navy: {
+              50: '#f0f4f8',
+              100: '#d9e2ec',
+              600: '#243b53',
+              700: '#102a43',
+              800: '#0c2340',
+              900: '#07172b',
+            },
+            tealaccent: '#008080',
+            coralalert: '#cc3300',
+            forestgreen: '#228b22',
+            amberwarn: '#d97706',
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    input[type="range"] {
+      accent-color: #0c2340;
+      cursor: pointer;
+    }
+    .vsm-node, .vsm-edge {
+      transition: opacity 0.25s ease, stroke-width 0.25s ease, filter 0.25s ease;
+    }
+    .dimmed {
+      opacity: 0.16 !important;
+    }
+    .hl-node {
+      filter: drop-shadow(0 0 7px rgba(0, 128, 128, 0.45));
+    }
+    .hl-edge {
+      stroke-width: 3.4px !important;
+    }
+    .math-block {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.55;
+    }
+    /* Custom subtle scrollbars for panels and tables */
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="antialiased selection:bg-teal-100 selection:text-navy-900">
+
+  <!-- Toast Notification (Non-blocking replacement for alert) -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden transform transition-all duration-300 translate-y-3 opacity-0">
+    <div class="flex items-center gap-2.5 bg-navy-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-xl border border-slate-700">
+      <span id="toast-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+      <span id="toast-msg">Action completed.</span>
+    </div>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- STICKY HEADER NAVIGATION                                               -->
+  <!-- ====================================================================== -->
+  <header class="sticky top-0 z-40 bg-navy-900/95 backdrop-blur border-b border-slate-800 text-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-700 flex items-center justify-center font-extrabold text-sm shadow-inner">
+          SD
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] uppercase tracking-widest font-semibold text-teal-300">Open Science Flight Simulator</span>
+            <span class="hidden sm:inline-block px-2 py-0.5 text-[10px] font-medium rounded-full bg-slate-800 text-slate-300 border border-slate-700">Systems (MDPI)</span>
+          </div>
+          <h1 class="text-sm sm:text-base font-bold tracking-tight leading-snug">Escaping the Indicator Trap · Santiago de Cali (2010–2040)</h1>
+        </div>
+      </div>
+
+      <nav class="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs font-medium">
+        <a href="#simulator" class="px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-slate-800 hover:text-white transition">Simulator</a>
+        <a href="#architecture" class="px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-slate-800 hover:text-white transition">VSM &amp; Loops</a>
+        <a href="#documentation" class="px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-slate-800 hover:text-white transition">Documentation</a>
+        <a href="#openscience" class="px-2.5 py-1.5 rounded-lg text-slate-200 hover:bg-slate-800 hover:text-white transition">Open Science</a>
+        <button onclick="exportCurrentCSV()" class="ml-1 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-semibold shadow-sm transition">
+          Export CSV
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ====================================================================== -->
+  <!-- HERO / EXECUTIVE INTRODUCTION                                          -->
+  <!-- ====================================================================== -->
+  <section class="bg-gradient-to-b from-navy-900 via-navy-800 to-slate-900 text-white border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+      <div class="grid lg:grid-cols-12 gap-6 items-center">
+        <div class="lg:col-span-8 space-y-3">
+          <div class="flex flex-wrap items-center gap-2 text-[11px]">
+            <span class="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 font-semibold">VSM + System Dynamics</span>
+            <span class="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Euler Integration (&Delta;t = 0.25 yr)</span>
+            <span class="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Calibrated 2010–2026 (DANE / DAPM)</span>
+            <a href="https://doi.org/10.5281/zenodo.22962097" target="_blank" rel="noopener" class="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition font-medium">
+              Zenodo DOI: 10.5281/zenodo.22962097
+            </a>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">
+            Interactive Policy Sandbox: Reactive Welfare, Defensive Informality, and Viable Municipal Governance
+          </h2>
+          <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+            Between 2020 and 2024, official extreme monetary poverty in Santiago de Cali fell from <strong>13.3% to 6.1%</strong>, yet labor informality remained rigidly entrenched above <strong>45–51%</strong>. Explore the calibrated continuous-time ODE model behind our <em>Systems</em> (MDPI) study to test how municipal welfare governance, punitive Sisb&eacute;n/RUI audits, youth capability ring-fencing, and multidimensional metrics reshape Cali's socioeconomic trajectory through <strong>2040</strong>.
+          </p>
+        </div>
+
+        <div class="lg:col-span-4 bg-slate-800/70 border border-slate-700 rounded-2xl p-4 sm:p-5 text-xs space-y-2.5">
+          <div class="text-[11px] font-bold uppercase tracking-wider text-teal-300">Study Metadata &amp; Authors</div>
+          <p class="text-slate-200 leading-relaxed">
+            <strong>Parra Valencia, J. A.</strong><sup>1,2,*</sup>, Mar&iacute;n, B.<sup>1</sup>, Pab&oacute;n, S.<sup>1</sup>, &amp; Mossos, N.<sup>1</sup>
+          </p>
+          <p class="text-[11px] text-slate-400">
+            <sup>1</sup>Instituci&oacute;n Universitaria Antonio Jos&eacute; Camacho (Cali) &bull; <sup>2</sup>Universidad Aut&oacute;noma de Bucaramanga
+          </p>
+          <div class="pt-2 border-t border-slate-700 flex flex-wrap gap-2">
+            <a href="#documentation" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white font-medium transition">Read Model Docs</a>
+            <a href="#openscience" class="px-3 py-1.5 rounded-lg bg-navy-600 hover:bg-slate-600 text-teal-200 font-medium transition">Cite &amp; Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================================== -->
+  <!-- SECTION 1: INTERACTIVE POLICY FLIGHT SIMULATOR                         -->
+  <!-- ====================================================================== -->
+  <main id="simulator" class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-5">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-wider text-teal-700">Interactive Simulation Engine (Runs 249–255)</span>
+        <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">1. Policy Counterfactual Flight Simulator (2010–2040)</h2>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <label class="inline-flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm cursor-pointer">
+          <input type="checkbox" id="chkBaseline" checked onchange="updateSimulation()" class="w-4 h-4 accent-navy-800 rounded" />
+          <span class="font-medium text-slate-700">Overlay 01 Baseline</span>
+        </label>
+        <label class="inline-flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm cursor-pointer">
+          <input type="checkbox" id="chkObserved" checked onchange="updateSimulation()" class="w-4 h-4 accent-coralalert rounded" />
+          <span class="font-medium text-slate-700">Show DANE / DAPM Data (2010–2026)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Preset Scenario Bar -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Select a Published Paper Scenario (Activated Cleanly in 2026):</span>
+        <span id="active-preset-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-navy-50 text-navy-800 border border-navy-100">Active: 01 Baseline (Run 249)</span>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2" id="preset-buttons">
+        <button data-preset="baseline" onclick="applyPreset('baseline')" class="preset-btn px-3 py-2.5 rounded-xl text-xs font-semibold border transition text-left">
+          <div class="font-bold">01 Baseline</div>
+          <div class="text-[10px] opacity-80">Run 249 · Inertia</div>
+        </button>
+        <button data-preset="punitive" onclick="applyPreset('punitive')" class="preset-btn px-3 py-2.5 rounded-xl text-xs font-semibold border transition text-left">
+          <div class="font-bold">02 Punitive</div>
+          <div class="text-[10px] opacity-80">Run 250 · S3* Audit</div>
+        </button>
+        <button data-preset="fiscal" onclick="applyPreset('fiscal')" class="preset-btn px-3 py-2.5 rounded-xl text-xs font-semibold border transition text-left">
+          <div class="font-bold">03 Fiscal Rule</div>
+          <div class="text-[10px] opacity-80">Run 251 · S4 Floor</div>
+        </button>
+        <button data-preset="optimal" onclick="applyPreset('optimal')" class="preset-btn px-3 py-2.5 rounded-xl text-xs font-semibold border transition text-left">
+          <div class="font-bold">04a MPI Optimal</div>
+          <div class="text-[10px] opacity-80">Run 252 · Full VSM</div>
+        </button>
+        <button data-preset="pragmatic" onclick="applyPreset('pragmatic')" class="preset-btn px-3 py-2.5 rounded-xl text-xs font-semibold border transition text-left">
+          <div class="font-bold">04b Pragmatic</div>
+          <div class="text-[10px] opacity-80">Run 253 · Realistic</div>
+        </button>
+        <button data-preset="extreme1" onclick="applyPreset('extreme1')" class="preset-btn px-3 py-2.5 rounded-xl text-xs font-semibold border transition text-left">
+          <div class="font-bold">Extreme 1</div>
+          <div class="text-[10px] opacity-80">Run 254 · I_NNAJ = 0</div>
+        </button>
+        <button data-preset="extreme2" onclick="applyPreset('extreme2')" class="preset-btn px-3 py-2.5 rounded-xl text-xs font-semibold border transition text-left">
+          <div class="font-bold">Extreme 2</div>
+          <div class="text-[10px] opacity-80">Run 255 · -50% GDP</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Simulator Grid -->
+    <div class="grid lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN: VSM POLICY CONTROL PANEL -->
+      <aside class="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4 lg:sticky lg:top-20">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h3 class="text-sm font-bold text-navy-900">VSM Governance Levers</h3>
+            <p class="text-[11px] text-slate-500">All reforms trigger cleanly at t = 2026</p>
+          </div>
+          <button onclick="applyPreset('baseline')" class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+            Reset
+          </button>
+        </div>
+
+        <!-- Lever 1: System 5 Paradigm -->
+        <div class="p-3.5 rounded-xl bg-navy-50/70 border border-navy-100 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-navy-900">System 5 · Algedonic Identity</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white text-navy-700 border border-navy-100">s_ipm</span>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button id="btn-s5-mon" onclick="setS5Paradigm(0)" class="px-2.5 py-2 rounded-lg text-[11px] font-semibold border transition">
+              Monetary Poverty
+            </button>
+            <button id="btn-s5-mpi" onclick="setS5Paradigm(1)" class="px-2.5 py-2 rounded-lg text-[11px] font-semibold border transition">
+              Adjusted MPI
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-600 leading-snug">
+            Determines whether municipal success (<em>S<sub>exito</sub></em>) tracks lagged monetary indigence or structural <em>MPI<sub>Adjusted</sub></em> [Eq. (13)].
+          </p>
+        </div>
+
+        <!-- Lever 2: System 4 Youth Budget Ring-Fencing -->
+        <div class="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-emerald-950">System 4 · Youth Budget Floor</span>
+            <span id="lbl-nnaj" class="font-mono font-bold text-emerald-800">Dynamic (~14%)</span>
+          </div>
+          <input id="sl-nnaj" type="range" min="0" max="40" step="1" value="14" oninput="onCustomSlider()" class="w-full" />
+          <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+            <span>0% (Ext 1)</span><span>14% (Base)</span><span>25% (Rule)</span><span>35% (MPI)</span>
+          </div>
+          <p class="text-[11px] text-slate-600 leading-snug">
+            Minimum share of executable treasury statutorily protected for youth human capital (<em>I<sub>NNAJ</sub></em>).
+          </p>
+        </div>
+
+        <!-- Lever 3: System 2 Formalization Grace Period -->
+        <div class="p-3.5 rounded-xl bg-teal-50/60 border border-teal-200/80 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-teal-950">System 2 · Formalization Grace Period</span>
+            <span id="lbl-grace" class="font-mono font-bold text-teal-800">0 mo</span>
+          </div>
+          <input id="sl-grace" type="range" min="0" max="36" step="3" value="0" oninput="onCustomSlider()" class="w-full" />
+          <div class="flex items-center justify-between text-[11px] bg-white/80 rounded-lg px-2.5 py-1.5 border border-teal-100">
+            <span class="text-slate-600">Resulting Benefit-Cliff Fear (&mu;<sub>sisben</sub>):</span>
+            <span id="lbl-mu-calc" class="font-mono font-bold text-navy-900">0.450</span>
+          </div>
+          <label class="flex items-center justify-between text-[11px] text-slate-700 cursor-pointer pt-0.5">
+            <span>Pragmatic Residual Friction (&mu;<sub>floor</sub> = 0.132)</span>
+            <input type="checkbox" id="chkPragmaticFloor" checked onchange="onCustomSlider()" class="w-4 h-4 accent-teal-700 rounded" />
+          </label>
+        </div>
+
+        <!-- Lever 4: System 3* Punitive Audit Stringency -->
+        <div class="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200/80 space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-orange-950">System 3* · Punitive Audit Sensitivity (&sigma;)</span>
+            <span id="lbl-sigma" class="font-mono font-bold text-coralalert">0.40</span>
+          </div>
+          <input id="sl-sigma" type="range" min="0.10" max="1.20" step="0.05" value="0.40" oninput="onCustomSlider()" class="w-full" />
+          <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+            <span>0.10 (Low)</span><span>0.40 (Base)</span><span>1.20 (Purge)</span>
+          </div>
+          <label class="flex items-center justify-between text-[11px] text-orange-950 cursor-pointer pt-1">
+            <span>Coercive Roster Purging Surge (Run 250)</span>
+            <input type="checkbox" id="chkPunitiveSurge" onchange="onCustomSlider()" class="w-4 h-4 accent-coralalert rounded" />
+          </label>
+        </div>
+
+        <!-- Lever 5: Maturation Delay & Macroeconomic Context -->
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-800">Maturation Delay (&tau;<sub>form</sub>)</span>
+              <span id="lbl-tau" class="font-mono font-bold text-navy-800">7.64 yr</span>
+            </div>
+            <input id="sl-tau" type="range" min="5.0" max="10.0" step="0.2" value="7.6" oninput="onCustomSlider()" class="w-full" />
+          </div>
+
+          <div class="space-y-1 pt-2 border-t border-slate-200">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-800">Real Local GDP Growth (g<sub>real</sub>)</span>
+              <span id="lbl-gdp" class="font-mono font-bold text-navy-800">1.97%/yr</span>
+            </div>
+            <input id="sl-gdp" type="range" min="1.0" max="4.5" step="0.1" value="2.0" oninput="onCustomSlider()" class="w-full" />
+          </div>
+
+          <label class="flex items-center justify-between text-[11px] text-slate-700 cursor-pointer pt-1 border-t border-slate-200">
+            <span class="font-medium text-amber-800">Extreme 2: Permanent -50% GDP Shock</span>
+            <input type="checkbox" id="chkGdpShock" onchange="onCustomSlider()" class="w-4 h-4 accent-amber-600 rounded" />
+          </label>
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button onclick="exportCurrentCSV()" class="flex-1 py-2.5 px-3 rounded-xl bg-navy-800 hover:bg-navy-700 text-white text-xs font-semibold shadow-sm transition">
+            Download CSV
+          </button>
+          <button onclick="copyParamsJSON()" class="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition">
+            Copy Config JSON
+          </button>
+        </div>
+      </aside>
+
+      <!-- RIGHT COLUMN: KPIs, DIAGNOSIS, AND 6 LIVE CHARTS -->
+      <div class="lg:col-span-8 space-y-5">
+
+        <!-- 6 KPI Summary Cards (2040 Outcomes) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="text-[11px] font-semibold text-slate-500">Labor Informality (2040)</div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="kpi-inf" class="text-2xl font-extrabold text-navy-900">38.9%</span>
+              <span id="kpi-inf-delta" class="text-[11px] font-semibold text-slate-500">Baseline</span>
+            </div>
+            <div id="kpi-inf-workers" class="text-[11px] text-slate-500 mt-0.5 font-mono">462,666 workers</div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="text-[11px] font-semibold text-slate-500">Employment Quality (ICE)</div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="kpi-ice" class="text-2xl font-extrabold text-teal-700">0.728</span>
+              <span id="kpi-ice-delta" class="text-[11px] font-semibold text-slate-500">Baseline</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Scale 0 (precarious) to 1 (decent)</div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="text-[11px] font-semibold text-slate-500">Adjusted MPI (2040)</div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="kpi-mpi" class="text-2xl font-extrabold text-indigo-700">0.439</span>
+              <span id="kpi-mpi-delta" class="text-[11px] font-semibold text-slate-500">Baseline</span>
+            </div>
+            <div id="kpi-ipm-sub" class="text-[11px] text-slate-500 mt-0.5">Structural IPM: 12.4%</div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="text-[11px] font-semibold text-slate-500">Youth Capabilities (C<sub>H</sub>)</div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="kpi-ch" class="text-2xl font-extrabold text-emerald-700">1.204</span>
+              <span id="kpi-ch-delta" class="text-[11px] font-semibold text-slate-500">Baseline</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5">CIU (Benchmark: 0.70 / Frontier: 2.00)</div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="text-[11px] font-semibold text-slate-500">Indicator Trap Ratio (IT)</div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="kpi-it" class="text-2xl font-extrabold text-coralalert">5.83</span>
+              <span id="kpi-it-delta" class="text-[11px] font-semibold text-slate-500">Baseline</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Ratio I<sub>rate</sub> / P<sub>mon</sub> (lower is better)</div>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="text-[11px] font-semibold text-slate-500">Extreme Poverty (P<sub>mon</sub>)</div>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="kpi-pmon" class="text-2xl font-extrabold text-slate-700">6.67%</span>
+              <span id="kpi-pinv-sub" class="text-[11px] font-mono font-semibold text-amber-700">$9.35B</span>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Nearly invariant (~6.6–7.0%): blind sensor</div>
+          </div>
+        </div>
+
+        <!-- Live Cybernetic Diagnostic Banner -->
+        <div id="diagnosis-banner" class="rounded-2xl bg-navy-900 text-slate-100 p-4 sm:p-5 border-l-4 border-teal-400 shadow-sm text-xs leading-relaxed">
+          Loading cybernetic diagnosis...
+        </div>
+
+        <!-- 6 Interactive Charts (2x3 Responsive Grid) -->
+        <div class="grid md:grid-cols-2 gap-4">
+          <!-- Chart 1: Informality -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-bold text-navy-900">(a) Urban Labor Informality Rate (%)</h4>
+              <span class="text-[10px] font-mono text-slate-500">MAPE 5.6% (2010–26)</span>
+            </div>
+            <div class="h-56"><canvas id="chartInformality"></canvas></div>
+          </div>
+
+          <!-- Chart 2: Human Capital -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-bold text-navy-900">(b) Youth Human Capital Stock (C<sub>H</sub>, CIU)</h4>
+              <span class="text-[10px] font-mono text-slate-500">DELAY3 (&tau;<sub>form</sub>)</span>
+            </div>
+            <div class="h-56"><canvas id="chartCapabilities"></canvas></div>
+          </div>
+
+          <!-- Chart 3: Policy Indices (MPI_Adj & ICE) -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-bold text-navy-900">(c) Policy Indices: MPI<sub>Adjusted</sub> &amp; ICE</h4>
+              <span class="text-[10px] font-mono text-slate-500">C<sub>ref,ind</sub> = 2.00 CIU</span>
+            </div>
+            <div class="h-56"><canvas id="chartIndices"></canvas></div>
+          </div>
+
+          <!-- Chart 4: Trap Ratio vs Extreme Poverty (with switcher) -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-2 gap-2">
+              <h4 id="chart4-title" class="text-xs font-bold text-navy-900">(d) Indicator Trap Ratio (IT = I<sub>rate</sub> / P<sub>mon</sub>)</h4>
+              <div class="flex rounded-lg bg-slate-100 p-0.5 text-[10px] font-semibold">
+                <button id="tab-it" onclick="setChart4Mode('it')" class="px-2 py-0.5 rounded-md bg-white text-navy-900 shadow-sm">Trap IT</button>
+                <button id="tab-pmon" onclick="setChart4Mode('pmon')" class="px-2 py-0.5 rounded-md text-slate-600">P<sub>mon</sub> %</button>
+              </div>
+            </div>
+            <div class="h-56"><canvas id="chartTrap"></canvas></div>
+          </div>
+
+          <!-- Chart 5: Municipal Treasury -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-bold text-navy-900">(e) Executable Municipal Treasury (P<sub>inv</sub>, COP B)</h4>
+              <span class="text-[10px] font-mono text-slate-500">Current COP Billions</span>
+            </div>
+            <div class="h-56"><canvas id="chartTreasury"></canvas></div>
+          </div>
+
+          <!-- Chart 6: Live LTM Dominance -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs font-bold text-navy-900">(f) Loops That Matter (LTM) Dominance (2026–2040)</h4>
+              <span class="text-[10px] font-mono text-slate-500">Share over I<sub>rate</sub> (%)</span>
+            </div>
+            <div class="h-56"><canvas id="chartLTM"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Benchmark Comparison Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h4 class="text-xs font-bold text-navy-900 uppercase tracking-wider">Published 2030 &amp; 2040 Benchmark Comparison (Table 5 Reference)</h4>
+              <p class="text-[11px] text-slate-500">Top row updates dynamically with your live simulation levers.</p>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead class="bg-slate-50 text-navy-900 border-b border-slate-200">
+                <tr>
+                  <th class="py-2.5 px-3 font-bold">Scenario (from 2026)</th>
+                  <th class="py-2.5 px-2.5 font-bold text-center">Inf. 2030 / 2040</th>
+                  <th class="py-2.5 px-2.5 font-bold text-right">P<sub>inf</sub> 2040</th>
+                  <th class="py-2.5 px-2.5 font-bold text-center">C<sub>H</sub> 2040</th>
+                  <th class="py-2.5 px-2.5 font-bold text-center">P<sub>mon</sub> 2040</th>
+                  <th class="py-2.5 px-2.5 font-bold text-center">MPI<sub>Adj</sub></th>
+                  <th class="py-2.5 px-2.5 font-bold text-center">ICE 2040</th>
+                  <th class="py-2.5 px-2.5 font-bold text-center">Trap IT</th>
+                  <th class="py-2.5 px-2.5 font-bold text-center">P<sub>inv</sub> (B)</th>
+                </tr>
+              </thead>
+              <tbody id="benchmark-tbody" class="divide-y divide-slate-100 text-[11.5px]">
+                <!-- Populated dynamically by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ====================================================================== -->
+  <!-- SECTION 2: INTERACTIVE VSM-SD CAUSAL ARCHITECTURE EXPLORER             -->
+  <!-- ====================================================================== -->
+  <section id="architecture" class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+      <div class="flex flex-wrap items-end justify-between gap-4 mb-5">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-teal-700">Organizational Cybernetics + Feedback Structure</span>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900">2. Interactive VSM–SD Architecture &amp; Canonical Feedback Loops</h2>
+          <p class="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl">
+            Click any canonical feedback loop below to highlight its pathways across Stafford Beer's Viable System Model boundaries (Systems 1–5) and inspect its exact causal mechanism.
+          </p>
+        </div>
+      </div>
+
+      <!-- Loop Filter Buttons -->
+      <div class="flex flex-wrap gap-2 mb-6">
+        <button onclick="selectLoop('ALL')" id="lbtn-ALL" class="loop-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-navy-900 text-white shadow-sm transition">All 5 Canonical Loops</button>
+        <button onclick="selectLoop('B1')" id="lbtn-B1" class="loop-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-900 border border-emerald-200 hover:bg-emerald-100 transition">B1: Symptomatic Relief (-)</button>
+        <button onclick="selectLoop('B2')" id="lbtn-B2" class="loop-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-teal-50 text-teal-900 border border-teal-200 hover:bg-teal-100 transition">B2: Goodhart's Complacency (-)</button>
+        <button onclick="selectLoop('B3')" id="lbtn-B3" class="loop-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-green-50 text-green-900 border border-green-200 hover:bg-green-100 transition">B3: Capability Depreciation (-)</button>
+        <button onclick="selectLoop('R1')" id="lbtn-R1" class="loop-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100 transition">R1: Fiscal–Capability Engine (+)</button>
+        <button onclick="selectLoop('R2')" id="lbtn-R2" class="loop-btn px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-50 text-orange-900 border border-orange-200 hover:bg-orange-100 transition">R2: S3* Audit Burden Trap (+)</button>
+      </div>
+
+      <div class="grid lg:grid-cols-12 gap-6 items-center">
+        <!-- Clean Planar SVG Diagram -->
+        <div class="lg:col-span-8 bg-slate-50 rounded-2xl border border-slate-200 p-3 sm:p-4 overflow-x-auto">
+          <svg viewBox="0 0 880 510" class="w-full h-auto min-w-[640px]" role="img" aria-label="Integrated VSM and System Dynamics Causal Diagram">
+            <defs>
+              <marker id="arr-navy" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#0c2340" />
+              </marker>
+              <marker id="arr-coral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#cc3300" />
+              </marker>
+              <marker id="arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#15803d" />
+              </marker>
+            </defs>
+
+            <!-- VSM Subsystem Zone Backgrounds -->
+            <rect x="215" y="16" width="380" height="94" rx="10" fill="#fef3c7" fill-opacity="0.45" stroke="#d97706" stroke-dasharray="6,4" stroke-width="1.3" />
+            <text x="405" y="34" text-anchor="middle" font-size="11" font-weight="700" fill="#b45309">VSM System 3: Control ("Here &amp; Now")</text>
+
+            <rect x="635" y="16" width="225" height="94" rx="10" fill="#fee2e2" fill-opacity="0.45" stroke="#cc3300" stroke-dasharray="6,4" stroke-width="1.3" />
+            <text x="747" y="34" text-anchor="middle" font-size="11" font-weight="700" fill="#cc3300">VSM System 3*: Audit Channel</text>
+
+            <rect x="18" y="148" width="182" height="202" rx="10" fill="#f0f4f8" stroke="#243b53" stroke-dasharray="6,4" stroke-width="1.3" />
+            <text x="109" y="166" text-anchor="middle" font-size="11" font-weight="700" fill="#0c2340">VSM S2 &amp; S5: Algedonic</text>
+
+            <rect x="140" y="378" width="215" height="86" rx="10" fill="#dcfce7" fill-opacity="0.55" stroke="#15803d" stroke-dasharray="6,4" stroke-width="1.3" />
+            <text x="247" y="396" text-anchor="middle" font-size="11" font-weight="700" fill="#15803d">VSM System 4: Intelligence</text>
+
+            <rect x="430" y="148" width="430" height="316" rx="10" fill="#ccfbf1" fill-opacity="0.32" stroke="#008080" stroke-dasharray="6,4" stroke-width="1.4" />
+            <text x="538" y="169" text-anchor="middle" font-size="11" font-weight="700" fill="#0f766e">VSM System 1: Primary Operations</text>
+
+            <!-- CAUSAL EDGES -->
+            <!-- Loop B1 -->
+            <path d="M 110 180 Q 130 72 232 72" fill="none" stroke="#0c2340" stroke-width="2" marker-end="url(#arr-navy)" class="vsm-edge loop-B1" />
+            <text x="148" y="96" font-size="11" font-weight="700" fill="#15803d" class="vsm-edge loop-B1">(+)</text>
+
+            <path d="M 382 72 L 424 72" fill="none" stroke="#0c2340" stroke-width="2" marker-end="url(#arr-navy)" class="vsm-edge loop-B1" />
+            <text x="403" y="65" text-anchor="middle" font-size="11" font-weight="700" fill="#15803d" class="vsm-edge loop-B1">(+)</text>
+
+            <path d="M 465 98 Q 410 148 355 180" fill="none" stroke="#0c2340" stroke-width="2" marker-end="url(#arr-navy)" class="vsm-edge loop-B1" />
+            <text x="412" y="138" font-size="11" font-weight="700" fill="#15803d" class="vsm-edge loop-B1">(+)</text>
+
+            <path d="M 232 206 L 188 206" fill="none" stroke="#0c2340" stroke-width="2" marker-end="url(#arr-navy)" class="vsm-edge loop-B1" />
+            <text x="210" y="222" text-anchor="middle" font-size="11" font-weight="700" fill="#cc3300" class="vsm-edge loop-B1">(-)</text>
+
+            <!-- Loop R2 (Audit) -->
+            <path d="M 578 72 L 652 72" fill="none" stroke="#d97706" stroke-width="2" marker-end="url(#arr-coral)" class="vsm-edge loop-R2" />
+            <text x="615" y="65" text-anchor="middle" font-size="11" font-weight="700" fill="#15803d" class="vsm-edge loop-R2">(+)</text>
+
+            <path d="M 748 98 L 748 178" fill="none" stroke="#cc3300" stroke-width="2.2" marker-end="url(#arr-coral)" class="vsm-edge loop-R2" />
+            <text x="760" y="138" font-size="11" font-weight="700" fill="#15803d" class="vsm-edge loop-R2">(+)</text>
+
+            <path d="M 675 98 L 620 132 L 420 132 L 382 195" fill="none" stroke="#cc3300" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arr-coral)" class="vsm-edge loop-R2" />
+            <text x="520" y="126" text-anchor="middle" font-size="11" font-weight="700" fill="#cc3300" class="vsm-edge loop-R2">(-)</text>
+
+            <!-- Loop B2 (Goodhart Complacency) -->
+            <path d="M 109 232 L 109 286" fill="none" stroke="#cc3300" stroke-width="2.1" stroke-dasharray="5,3" marker-end="url(#arr-coral)" class="vsm-edge loop-B2" />
+            <text x="90" y="264" font-size="11" font-weight="700" fill="#cc3300" class="vsm-edge loop-B2">(-)</text>
+
+            <path d="M 109 338 L 109 428 L 154 428" fill="none" stroke="#0c2340" stroke-width="2" marker-end="url(#arr-navy)" class="vsm-edge loop-B2" />
+            <text x="90" y="395" font-size="11" font-weight="700" fill="#cc3300" class="vsm-edge loop-B2">(-)</text>
+
+            <path d="M 338 428 L 448 428" fill="none" stroke="#15803d" stroke-width="2.4" marker-end="url(#arr-green)" class="vsm-edge loop-B2 loop-R1" />
+            <text x="392" y="418" text-anchor="middle" font-size="10.5" font-weight="700" fill="#15803d" class="vsm-edge loop-B2 loop-R1">(+) [7.64 yr]</text>
+
+            <path d="M 526 402 L 526 340" fill="none" stroke="#0c2340" stroke-width="2" marker-end="url(#arr-navy)" class="vsm-edge loop-B2 loop-R1" />
+            <text x="540" y="375" font-size="11" font-weight="700" fill="#15803d" class="vsm-edge loop-B2 loop-R1">(+)</text>
+
+            <path d="M 555 288 Q 595 232 666 218" fill="none" stroke="#0c2340" stroke-width="2" marker-end="url(#arr-navy)" class="vsm-edge loop-B2 loop-R1" />
+            <text x="595" y="242" font-size="11" font-weight="700" fill="#cc3300" class="vsm-edge loop-B2 loop-R1">(-)</text>
+
+            <!-- Loop B3 (Depreciation) -->
+            <path d="M 468 402 C 446 355, 502 355, 492 400" fill="none" stroke="#15803d" stroke-width="1.8" stroke-dasharray="4,3" marker-end="url(#arr-green)" class="vsm-edge loop-B3" />
+            <text x="470" y="362" text-anchor="middle" font-size="10" font-weight="700" fill="#cc3300" class="vsm-edge loop-B3">(-) &tau; = 25y</text>
+
+            <!-- Loop R1 (Fiscal Engine) -->
+            <path d="M 748 232 L 748 286" fill="none" stroke="#0c2340" stroke-width="2" marker-end="url(#arr-navy)" class="vsm-edge loop-R1" />
+            <text x="760" y="264" font-size="11" font-weight="700" fill="#cc3300" class="vsm-edge loop-R1">(-)</text>
+
+            <path d="M 748 338 L 748 400" fill="none" stroke="#0c2340" stroke-width="2" marker-end="url(#arr-navy)" class="vsm-edge loop-R1" />
+            <text x="760" y="374" font-size="11" font-weight="700" fill="#15803d" class="vsm-edge loop-R1">(+)</text>
+
+            <path d="M 748 454 L 748 486 L 247 486 L 247 458" fill="none" stroke="#0c2340" stroke-width="2" marker-end="url(#arr-navy)" class="vsm-edge loop-R1" />
+            <text x="500" y="480" text-anchor="middle" font-size="10.5" font-weight="700" fill="#15803d" class="vsm-edge loop-R1">(+) S3–S4 Treasury Allocation ("There &amp; Then")</text>
+
+            <!-- VARIABLE NODES -->
+            <g class="vsm-node loop-B1">
+              <rect x="234" y="46" width="148" height="52" rx="7" fill="#ffffff" stroke="#0c2340" stroke-width="1.7" />
+              <text x="308" y="68" text-anchor="middle" font-size="11" font-weight="700" fill="#0c2340">Political Pressure</text>
+              <text x="308" y="84" text-anchor="middle" font-size="10.5" fill="#334155">for Relief (P_pol)</text>
+            </g>
+
+            <g class="vsm-node loop-B1 loop-R2">
+              <rect x="426" y="46" width="152" height="52" rx="7" fill="#ffffff" stroke="#0c2340" stroke-width="1.7" />
+              <text x="502" y="68" text-anchor="middle" font-size="11" font-weight="700" fill="#0c2340">Reactive Cash</text>
+              <text x="502" y="84" text-anchor="middle" font-size="10.5" fill="#334155">Transfers (G_reac)</text>
+            </g>
+
+            <g class="vsm-node loop-R2">
+              <rect x="654" y="46" width="188" height="52" rx="7" fill="#fff5f5" stroke="#cc3300" stroke-width="2" />
+              <text x="748" y="68" text-anchor="middle" font-size="11" font-weight="700" fill="#cc3300">Punitive Sisb&eacute;n/RUI</text>
+              <text x="748" y="84" text-anchor="middle" font-size="10.5" fill="#991b1b">Auditing (A_fisc)</text>
+            </g>
+
+            <g class="vsm-node loop-B1 loop-B2">
+              <rect x="32" y="180" width="154" height="52" rx="7" fill="#ffffff" stroke="#0c2340" stroke-width="1.7" />
+              <text x="109" y="202" text-anchor="middle" font-size="11" font-weight="700" fill="#0c2340">Reported Poverty</text>
+              <text x="109" y="218" text-anchor="middle" font-size="10.5" fill="#334155">(P_mon,rep · SMTH1)</text>
+            </g>
+
+            <g class="vsm-node loop-B1 loop-R2">
+              <rect x="234" y="180" width="148" height="52" rx="7" fill="#ffffff" stroke="#0c2340" stroke-width="1.7" />
+              <text x="308" y="202" text-anchor="middle" font-size="11" font-weight="700" fill="#0c2340">Emergency Relief</text>
+              <text x="308" y="218" text-anchor="middle" font-size="10.5" fill="#334155">Effect (E_min)</text>
+            </g>
+
+            <g class="vsm-node loop-B2 loop-R1 loop-R2">
+              <rect x="668" y="180" width="160" height="52" rx="7" fill="#ccfbf1" stroke="#008080" stroke-width="2.4" />
+              <text x="748" y="202" text-anchor="middle" font-size="11" font-weight="800" fill="#0f766e">STOCK: Informal</text>
+              <text x="748" y="218" text-anchor="middle" font-size="10.5" font-weight="600" fill="#115e59">Labor (P_inf)</text>
+            </g>
+
+            <g class="vsm-node loop-B2">
+              <rect x="32" y="288" width="154" height="50" rx="7" fill="#e2e8f0" stroke="#0c2340" stroke-width="1.8" />
+              <text x="109" y="309" text-anchor="middle" font-size="11" font-weight="700" fill="#0c2340">Perceived Success</text>
+              <text x="109" y="325" text-anchor="middle" font-size="10.5" fill="#334155">(S_exito · SMTH3)</text>
+            </g>
+
+            <g class="vsm-node loop-B2 loop-R1">
+              <rect x="450" y="288" width="152" height="50" rx="7" fill="#ffffff" stroke="#0c2340" stroke-width="1.7" />
+              <text x="526" y="309" text-anchor="middle" font-size="11" font-weight="700" fill="#0c2340">Formal Labor</text>
+              <text x="526" y="325" text-anchor="middle" font-size="10.5" fill="#334155">Absorption (F_form)</text>
+            </g>
+
+            <g class="vsm-node loop-R1">
+              <rect x="668" y="288" width="160" height="50" rx="7" fill="#ffffff" stroke="#0c2340" stroke-width="1.7" />
+              <text x="748" y="309" text-anchor="middle" font-size="11" font-weight="700" fill="#0c2340">Local Tax Revenue</text>
+              <text x="748" y="325" text-anchor="middle" font-size="10.5" fill="#334155">(T_loc: ICA/Predial)</text>
+            </g>
+
+            <g class="vsm-node loop-B2 loop-R1">
+              <rect x="156" y="402" width="182" height="52" rx="7" fill="#dcfce7" stroke="#15803d" stroke-width="1.9" />
+              <text x="247" y="424" text-anchor="middle" font-size="11" font-weight="700" fill="#14532d">Youth Human Capital</text>
+              <text x="247" y="440" text-anchor="middle" font-size="10.5" fill="#166534">Investment (I_NNAJ)</text>
+            </g>
+
+            <g class="vsm-node loop-B2 loop-B3 loop-R1">
+              <rect x="450" y="402" width="152" height="52" rx="7" fill="#ccfbf1" stroke="#008080" stroke-width="2.4" />
+              <text x="526" y="424" text-anchor="middle" font-size="11" font-weight="800" fill="#0f766e">STOCK: Youth</text>
+              <text x="526" y="440" text-anchor="middle" font-size="10.5" font-weight="600" fill="#115e59">Capabilities (C_H)</text>
+            </g>
+
+            <g class="vsm-node loop-R1">
+              <rect x="668" y="402" width="160" height="52" rx="7" fill="#fef3c7" stroke="#d97706" stroke-width="2.4" />
+              <text x="748" y="424" text-anchor="middle" font-size="11" font-weight="800" fill="#92400e">STOCK: Municipal</text>
+              <text x="748" y="440" text-anchor="middle" font-size="10.5" font-weight="600" fill="#b45309">Treasury (P_inv)</text>
+            </g>
+
+            <!-- LOOP BADGES -->
+            <g class="vsm-node loop-B1" style="cursor:pointer" onclick="selectLoop('B1')">
+              <circle cx="290" cy="144" r="14" fill="#15803d" stroke="#ffffff" stroke-width="2" />
+              <text x="290" y="148" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff">B1</text>
+            </g>
+            <g class="vsm-node loop-R2" style="cursor:pointer" onclick="selectLoop('R2')">
+              <circle cx="688" cy="138" r="14" fill="#cc3300" stroke="#ffffff" stroke-width="2" />
+              <text x="688" y="142" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff">R2</text>
+            </g>
+            <g class="vsm-node loop-B2" style="cursor:pointer" onclick="selectLoop('B2')">
+              <circle cx="290" cy="312" r="14" fill="#0f766e" stroke="#ffffff" stroke-width="2" />
+              <text x="290" y="316" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff">B2</text>
+            </g>
+            <g class="vsm-node loop-R1" style="cursor:pointer" onclick="selectLoop('R1')">
+              <circle cx="645" cy="348" r="14" fill="#1d4ed8" stroke="#ffffff" stroke-width="2" />
+              <text x="645" y="352" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff">R1</text>
+            </g>
+            <g class="vsm-node loop-B3" style="cursor:pointer" onclick="selectLoop('B3')">
+              <circle cx="470" cy="382" r="12" fill="#166534" stroke="#ffffff" stroke-width="2" />
+              <text x="470" y="386" text-anchor="middle" font-size="10" font-weight="800" fill="#ffffff">B3</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- Loop Inspector Card -->
+        <div class="lg:col-span-4 bg-navy-900 text-white rounded-2xl p-6 shadow-md space-y-4">
+          <div class="flex items-center justify-between">
+            <span id="inspector-badge" class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">Integrated System</span>
+            <span id="inspector-vsm" class="text-[11px] font-mono text-slate-400">Systems 1–5</span>
+          </div>
+          <h3 id="inspector-title" class="text-lg font-extrabold leading-snug">Five Canonical Feedback Loops Inside VSM Boundaries</h3>
+          <p id="inspector-desc" class="text-xs text-slate-300 leading-relaxed">
+            The Indicator Trap emerges from the interaction of three balancing stabilizers (B1, B2, B3) and two reinforcing engines (R1, R2). Select any loop above or click a badge in the diagram to trace its causal chain and policy leverage.
+          </p>
+          <div class="p-3 rounded-xl bg-slate-800/90 border border-slate-700 font-mono text-[11px] text-teal-200 leading-relaxed" id="inspector-chain">
+            VSM S1 (Labor, C_H, Tax) &harr; S2 (Sisb&eacute;n/Lag) &harr; S3/S3* (Treasury/Audit) &harr; S4 (Youth Cap.) &harr; S5 (Algedonic Target)
+          </div>
+          <div class="pt-2 border-t border-slate-800 text-[11px] text-slate-400" id="inspector-lit">
+            <strong class="text-slate-200">Theoretical Grounding:</strong> Beer (1985); Goodhart (1975); Strathern (1997); Sterman (2000); Schoenberg et al. (2020).
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================================== -->
+  <!-- SECTION 3: COMPREHENSIVE ON-SITE SCIENTIFIC DOCUMENTATION              -->
+  <!-- ====================================================================== -->
+  <section id="documentation" class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-6 sm:p-8 border-b border-slate-200 bg-slate-50/70">
+        <span class="text-xs font-bold uppercase tracking-wider text-teal-700">Embedded Technical Reference</span>
+        <h2 class="text-xl sm:text-2xl font-extrabold text-navy-900 mt-1">3. Complete Model Documentation &amp; User Guide</h2>
+        <p class="text-xs sm:text-sm text-slate-600 mt-1 max-w-3xl">
+          Full open-science documentation of the VSM cybernetic diagnosis, continuous-time ODE equations, calibrated parameters, Stage 5 validation tests, and guided policy exploration exercises.
+        </p>
+
+        <!-- Documentation Tabs -->
+        <div class="flex flex-wrap gap-2 mt-5" role="tablist">
+          <button onclick="openDocTab('overview')" id="dtab-overview" class="doc-tab px-4 py-2 rounded-xl text-xs font-bold bg-navy-900 text-white shadow-sm transition">1. VSM &amp; Leverage Points</button>
+          <button onclick="openDocTab('equations')" id="dtab-equations" class="doc-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition">2. ODE Equations &amp; Units</button>
+          <button onclick="openDocTab('parameters')" id="dtab-parameters" class="doc-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition">3. Parameters (Run 406)</button>
+          <button onclick="openDocTab('validation')" id="dtab-validation" class="doc-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition">4. Calibration &amp; Validation</button>
+          <button onclick="openDocTab('guide')" id="dtab-guide" class="doc-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition">5. Guided Policy Labs</button>
+        </div>
+      </div>
+
+      <div class="p-6 sm:p-8 text-xs sm:text-sm text-slate-700 leading-relaxed">
+
+        <!-- TAB 1: VSM OVERVIEW -->
+        <div id="doc-overview" class="doc-panel space-y-6">
+          <div class="grid md:grid-cols-3 gap-4">
+            <div class="p-5 rounded-2xl bg-red-50/70 border border-red-200">
+              <div class="text-[11px] font-bold uppercase text-coralalert mb-1">Pathology 1 · S3–S4 Homeostat</div>
+              <h3 class="text-sm font-bold text-navy-900 mb-2">Short-Termism &amp; Capability Starvation</h3>
+              <p class="text-xs text-slate-700">Electoral pressure for immediate poverty relief causes System 3 operational transfers (<em>G<sub>reac</sub></em>) to crowd out System 4 youth capability budgets (<em>I<sub>NNAJ</sub></em>), starving an 8-year maturation pipeline (&tau;<sub>form</sub> = 7.64 yr) whenever monetary indicators improve (Loop B2).</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-amber-50/70 border border-amber-200">
+              <div class="text-[11px] font-bold uppercase text-amber-800 mb-1">Pathology 2 · System 3* Channel</div>
+              <h3 class="text-sm font-bold text-navy-900 mb-2">Punitive Audit Hypertrophy</h3>
+              <p class="text-xs text-slate-700">Turning the sporadic System 3* audit channel into permanent punitive surveillance (<em>A<sub>fisc</sub></em>) to purge Sisb&eacute;n/RUI rosters violates Ashby's Law of Requisite Variety: System 1 workers counter institutional control by hiding assets and rejecting formal payroll contracts (Loop R2).</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-navy-50 border border-navy-100">
+              <div class="text-[11px] font-bold uppercase text-navy-800 mb-1">Pathology 3 · System 5 Identity</div>
+              <h3 class="text-sm font-bold text-navy-900 mb-2">Corrupted Algedonic Signal</h3>
+              <p class="text-xs text-slate-700">Anchoring System 5 policy success solely to headline extreme monetary poverty (<em>P<sub>mon,rep</sub></em>) blinds municipal leadership: saturating cash transfers keep <em>P<sub>mon</sub></em> near 6.6–7.0% even when informality surges to 69.8%.</p>
+            </div>
+          </div>
+
+          <div>
+            <h3 class="text-base font-bold text-navy-900 mb-3">Meadows Leverage Points &amp; VSM Cybernetic Redesign Matrix</h3>
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead class="bg-slate-50 text-navy-900 border-b border-slate-200">
+                  <tr>
+                    <th class="p-3 font-bold">Meadows Level &amp; VSM Subsystem</th>
+                    <th class="p-3 font-bold">Status Quo Practice</th>
+                    <th class="p-3 font-bold">High-Leverage Cybernetic Redesign</th>
+                    <th class="p-3 font-bold text-center">2040 Impact</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr>
+                    <td class="p-3 font-bold text-navy-900">Low: Parameters<div class="font-normal text-slate-500">System 3 Transfers</div></td>
+                    <td class="p-3">Increasing palliative cash transfers (<em>G<sub>reac</sub></em>).</td>
+                    <td class="p-3"><strong>Ineffective:</strong> Saturates near &kappa;<sub>tr</sub> = 0.994 without building employability; reinforces complacency (B1 &rarr; B2).</td>
+                    <td class="p-3 text-center font-bold text-coralalert">Low / Palliative</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-bold text-navy-900">Medium: Flows<div class="font-normal text-slate-500">S2 &amp; S3* Attenuation</div></td>
+                    <td class="p-3">Coercive Sisb&eacute;n/RUI roster purging (<em>A<sub>fisc</sub></em>).</td>
+                    <td class="p-3"><strong>24-Month Formalization Grace Period:</strong> Portable benefits during formal contract entry [Eq. (9); Runs 252–253].</td>
+                    <td class="p-3 text-center font-bold text-emerald-700">High</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-bold text-navy-900">High: System Rules<div class="font-normal text-slate-500">S3–S4 Homeostat</div></td>
+                    <td class="p-3">Youth budgets exposed to short-term electoral cycles.</td>
+                    <td class="p-3"><strong>Youth Ring-Fenced Fiscal Rule (Run 251):</strong> Statutory ordinance protecting &ge;25% of executable treasury for <em>I<sub>NNAJ</sub></em>.</td>
+                    <td class="p-3 text-center font-bold text-emerald-700">Very High</td>
+                  </tr>
+                  <tr>
+                    <td class="p-3 font-bold text-navy-900">Highest: Paradigm<div class="font-normal text-slate-500">System 5 Identity</div></td>
+                    <td class="p-3">Targeting headline extreme monetary poverty (<em>P<sub>mon,rep</sub></em>).</td>
+                    <td class="p-3"><strong>MPI Governance Transformation (Runs 252–253):</strong> Rewiring System 5 scorecards to <em>MPI<sub>Adjusted</sub></em> and <em>ICE</em> [Eq. (13)].</td>
+                    <td class="p-3 text-center font-bold text-teal-700">Transformative</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: MATHEMATICAL EQUATIONS -->
+        <div id="doc-equations" class="doc-panel hidden space-y-5">
+          <div class="p-4 rounded-xl bg-teal-50/70 border border-teal-200 text-xs">
+            <strong class="text-teal-950">Operational Unit Definition (1 CIU):</strong> Youth human capital <em>C<sub>H</sub>(t)</em> is measured in <em>Capability Index Units</em> (CIU), where <strong>1.00 CIU</strong> denotes a composite municipal cohort-readiness benchmark combining secondary/technical completion, early-childhood nutrition, and formal employability (anchored from 0.52 CIU in 2010 to 0.980 CIU in 2026). The labor-market threshold is <em>C<sub>req,lab</sub></em> = 0.70 CIU, while the unclamped indicator frontier is <em>C<sub>ref,ind</sub></em> = 2.00 CIU.
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div class="text-xs font-bold text-navy-900">1. Endogenous Policy Indices [Eqs. (1)–(4)]</div>
+              <div class="math-block bg-white p-3 rounded-lg border border-slate-200 text-slate-800">
+                V_hogar(t) = 0.55 * I_rate(t) + 0.45 * IPM(t)<br/>
+                MPI_Adj(t) = clamp(0.40 + 0.60*V_hogar - 0.40*min(1, C_H/2.0), 0.02, 0.98)<br/>
+                ICE(t)     = clamp(1 - I_rate * (1 - 0.50*min(1, C_H/2.0)), 0, 1)<br/>
+                IT(t)      = I_rate(t) / P_mon(t)
+              </div>
+              <p class="text-xs text-slate-600">Dimensionless macro-indicators capturing structural deprivation, decent work quality, and indicator decoupling.</p>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div class="text-xs font-bold text-navy-900">2. Human Capital Accumulation [Eq. (5)]</div>
+              <div class="math-block bg-white p-3 rounded-lg border border-slate-200 text-slate-800">
+                dC_H/dt = DELAY3((I_NNAJ(t) / Pi(t)) * eta_cap, tau_form)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- C_H(t) / tau_vida
+              </div>
+              <p class="text-xs text-slate-600">Third-order Erlang delay (&tau;<sub>form</sub> = 7.64 yr; &tau;<sub>vida</sub> = 25 yr). Both input and output of DELAY3 have units of CIU/yr; nominal investment is deflated by &Pi;(t) = (1 + 0.0499)<sup>t-2010</sup>.</p>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div class="text-xs font-bold text-navy-900">3. Reactive Informality &amp; Grace Period [Eqs. (6)–(9)]</div>
+              <div class="math-block bg-white p-3 rounded-lg border border-slate-200 text-slate-800">
+                dP_inf/dt = F_prec(t) - F_form(t)<br/>
+                F_form = alpha_0 * P_inf * min(1.8, C_H/0.70) * (1 - mu_sisben*phi)<br/>
+                F_prec = beta_0 * (L_urb - P_inf) * max(0.5, 1.5 - C_H/0.70)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* (1 + sigma * A_fisc * mu_sisben + lambda_cov * K_covid)<br/>
+                mu_sisben(T_grace) = mu_floor + (0.45 - mu_floor) * exp(-0.12 * T_grace)
+              </div>
+              <p class="text-xs text-slate-600">With <em>T<sub>grace</sub></em> = 24 mo, <em>k<sub>g</sub></em> = 0.12 mo<sup>-1</sup>, and &mu;<sub>floor</sub> = 0.132, Eq. (9) reproduces exactly &mu;<sub>sisben</sub> = 0.150 (Run 253).</p>
+            </div>
+
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div class="text-xs font-bold text-navy-900">4. Fiscal Erosion &amp; Algedonic Feedback [Eqs. (10)–(14)]</div>
+              <div class="math-block bg-white p-3 rounded-lg border border-slate-200 text-slate-800">
+                T_loc(t)  = psi_tax * GDP_real(t) * Pi(t) * (1 - I_rate * theta_erosion)<br/>
+                dP_inv/dt = tau_eff * T_loc(t) - (G_reac(t) + I_NNAJ(t))<br/>
+                P_mon,rep = SMTH1(P_mon, 1.0 yr) | MPI_rep = SMTH1(MPI_Adj, 1.0 yr)<br/>
+                I_obj(t)  = (1 - s_ipm)*100*clamp(1 - P_mon,rep/0.15, 0, 1)<br/>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ s_ipm*100*(1 - MPI_rep)<br/>
+                S_exito   = SMTH3(I_obj(t), 1.5 yr)
+              </div>
+              <p class="text-xs text-slate-600">All fiscal flows are in current COP billions/yr. Lagged SMTH1/SMTH3 states strictly eliminate simultaneous algebraic circularity.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 3: CALIBRATED PARAMETERS -->
+        <div id="doc-parameters" class="doc-panel hidden space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <p class="text-xs text-slate-600">Complete parameter inventory distinguishing Differential Evolution (Run 406) calibrated values from structural references and policy-design specifications.</p>
+            <input type="text" id="param-search" oninput="filterParamTable()" placeholder="Filter parameters..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div class="overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left text-xs border-collapse" id="param-table">
+              <thead class="bg-slate-50 text-navy-900 border-b border-slate-200">
+                <tr>
+                  <th class="p-2.5 font-bold">Parameter Name</th>
+                  <th class="p-2.5 font-bold text-center">Symbol</th>
+                  <th class="p-2.5 font-bold text-center">Value</th>
+                  <th class="p-2.5 font-bold text-center">Units</th>
+                  <th class="p-2.5 font-bold">Estimation Basis</th>
+                  <th class="p-2.5 font-bold">Structural Role</th>
+                </tr>
+              </thead>
+              <tbody id="param-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- TAB 4: CALIBRATION & VALIDATION -->
+        <div id="doc-validation" class="doc-panel hidden space-y-6">
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <h3 class="text-sm font-bold text-navy-900 mb-2">Historical Goodness-of-Fit (2010–2026, Run 249 / Opt. Run 406)</h3>
+              <div class="overflow-x-auto rounded-xl border border-slate-200">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead class="bg-slate-50 text-navy-900 border-b border-slate-200">
+                    <tr>
+                      <th class="p-2.5 font-bold">Benchmark Series</th>
+                      <th class="p-2.5 font-bold text-center">MAPE</th>
+                      <th class="p-2.5 font-bold text-center">RMSE</th>
+                      <th class="p-2.5 font-bold text-center">2026 Obs. / Sim.</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-100">
+                    <tr><td class="p-2.5 font-medium">Labor Informality (DANE GEIH)</td><td class="p-2.5 text-center font-bold text-emerald-700">5.6%</td><td class="p-2.5 text-center font-mono">0.0340</td><td class="p-2.5 text-center font-mono">43.8% / 45.7%</td></tr>
+                    <tr><td class="p-2.5 font-medium">Local Tax Revenue (DAPM)</td><td class="p-2.5 text-center font-bold text-emerald-700">6.5%</td><td class="p-2.5 text-center font-mono">0.142 B</td><td class="p-2.5 text-center font-mono">$2.98B / $2.98B</td></tr>
+                    <tr><td class="p-2.5 font-medium">Structural IPM (DANE ECV)</td><td class="p-2.5 text-center font-bold text-teal-700">10.5%</td><td class="p-2.5 text-center font-mono">0.0198</td><td class="p-2.5 text-center font-mono">13.4% / 13.9%</td></tr>
+                    <tr><td class="p-2.5 font-medium">Executable Treasury (DAPM)</td><td class="p-2.5 text-center font-bold text-teal-700">11.2%</td><td class="p-2.5 text-center font-mono">0.285 B</td><td class="p-2.5 text-center font-mono">$3.32B / $3.41B</td></tr>
+                    <tr><td class="p-2.5 font-medium">Extreme Monetary Poverty (DANE)</td><td class="p-2.5 text-center font-semibold text-amber-700">22.3%</td><td class="p-2.5 text-center font-mono">0.0151</td><td class="p-2.5 text-center font-mono">6.1% / 6.86%</td></tr>
+                    <tr><td class="p-2.5 font-medium">Youth Investment (Convenio 4132)</td><td class="p-2.5 text-center font-semibold text-amber-700">31.8%</td><td class="p-2.5 text-center font-mono">0.094 B</td><td class="p-2.5 text-center font-mono">$0.48B / $0.52B</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-2">
+                Note: 2025–2026 observations are provisional administrative series. Monetary RMSE values are in current COP billions. Elevated relative MAPE on <em>P<sub>mon</sub></em> reflects the small pre-2020 denominator (absolute RMSE is just 1.51 pp).
+              </p>
+            </div>
+
+            <div class="space-y-3">
+              <h3 class="text-sm font-bold text-navy-900">Stage 5 Structural &amp; Sensitivity Verification (Barlas 1996)</h3>
+              <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2">
+                <p><strong>1. Multivariate Sobol Sensitivity (N = 200, &plusmn;20% across 8 parameters):</strong> First-order (<em>S<sub>1</sub></em>) and total-order (<em>S<sub>T</sub></em>) indices confirm that &alpha;<sub>0</sub>, &eta;<sub>cap</sub>, and &beta;<sub>0</sub> explain &gt;82% of 2040 informality variance, with <strong>100% ordinal policy ranking invariance</strong> (04a &succ; 04b &succ; 03 &succ; 01 &succ; 02).</p>
+                <p><strong>2. Euler Step-Size Convergence:</strong> Halving &Delta;t from 0.25 to 0.125 yr changes 2040 <em>I<sub>rate</sub></em> by &lt;0.1 pp and <em>C<sub>H</sub></em> by &lt;0.005 CIU.</p>
+                <p><strong>3. Extreme 1 (I<sub>NNAJ</sub> = 0):</strong> Produces an idle fiscal liquidity trap ($11.21B cash hoarded while <em>C<sub>H</sub></em> erodes to 0.850 CIU and informality stalls at 43.9%).</p>
+                <p><strong>4. Extreme 2 (-50% Real GDP):</strong> Isolates the endogenous municipal audit contraction channel: as reactive outlays shrink by 49.1%, administrative audit pressure drops, slightly lowering informality (35.3%) even as capabilities erode (1.093 CIU)—illustrating why informality must be read jointly with <em>ICE</em> and <em>MPI<sub>Adjusted</sub></em>.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: GUIDED POLICY LABS -->
+        <div id="doc-guide" class="doc-panel hidden space-y-4">
+          <p class="text-xs sm:text-sm text-slate-600">
+            Use these four 2-minute interactive experiments to explore the core cybernetic insights of the paper directly in the simulator above:
+          </p>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="p-4 rounded-2xl bg-orange-50/70 border border-orange-200 space-y-2">
+              <div class="text-xs font-bold text-coralalert">Lab 1 · Trigger the Punitive Audit Paradox</div>
+              <p class="text-xs text-slate-700">Click <strong>02 Punitive (Run 250)</strong>. Watch informality surge to <strong>69.8%</strong> (830,492 workers) and <em>ICE</em> collapse to <strong>0.511</strong>—then switch Chart (d) to <strong>P<sub>mon</sub> %</strong> and notice how extreme poverty barely moves (6.80%)!</p>
+              <button onclick="runLab('punitive','pmon')" class="px-3 py-1.5 rounded-lg bg-coralalert text-white text-xs font-semibold hover:opacity-90 transition">Load Lab 1 in Simulator</button>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2">
+              <div class="text-xs font-bold text-emerald-800">Lab 2 · Why Capability Ring-Fencing Alone Isn't Enough</div>
+              <p class="text-xs text-slate-700">Click <strong>03 Fiscal Rule (Run 251)</strong>. Youth capabilities climb to <strong>1.403 CIU</strong>, yet informality only falls to <strong>36.0%</strong> because System 2 benefit-cliff fear (&mu;<sub>sisben</sub> = 0.45) still blocks formalization.</p>
+              <button onclick="runLab('fiscal','it')" class="px-3 py-1.5 rounded-lg bg-emerald-700 text-white text-xs font-semibold hover:opacity-90 transition">Load Lab 2 in Simulator</button>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-teal-50/70 border border-teal-200 space-y-2">
+              <div class="text-xs font-bold text-teal-800">Lab 3 · Realistic Escape: Optimal vs. Pragmatic</div>
+              <p class="text-xs text-slate-700">Load <strong>04b Pragmatic (Run 253)</strong>. Even with residual benefit-cliff fear (&mu; = 0.150) and non-zero audit friction (&sigma; = 0.25), combining S5 MPI governance with a 24-month grace period captures <strong>89%</strong> of the optimal formalization gain (25.3% informality; <em>ICE</em> = 0.839).</p>
+              <button onclick="runLab('pragmatic','it')" class="px-3 py-1.5 rounded-lg bg-teal-700 text-white text-xs font-semibold hover:opacity-90 transition">Load Lab 3 in Simulator</button>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-100 border border-slate-300 space-y-2">
+              <div class="text-xs font-bold text-navy-900">Lab 4 · Stress-Test the Liquidity Trap (Extreme 1)</div>
+              <p class="text-xs text-slate-700">Load <strong>Extreme 1 (Run 254)</strong>. Notice how setting <em>I<sub>NNAJ</sub></em> = 0 builds the highest nominal treasury balance ($11.21B) while silently eroding youth human capital to 0.850 CIU after the 7.64-year DELAY3 buffer drains.</p>
+              <button onclick="runLab('extreme1','it')" class="px-3 py-1.5 rounded-lg bg-navy-800 text-white text-xs font-semibold hover:opacity-90 transition">Load Lab 4 in Simulator</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================================================================== -->
+  <!-- SECTION 4: OPEN SCIENCE, REPRODUCIBILITY & CITATION HUB                -->
+  <!-- ====================================================================== -->
+  <section id="openscience" class="max-w-7xl mx-auto px-4 sm:px-6 py-8 pb-14">
+    <div class="bg-navy-900 text-white rounded-2xl p-6 sm:p-8 shadow-md border border-slate-800">
+      <div class="grid lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-6 space-y-4">
+          <span class="text-xs font-bold uppercase tracking-wider text-teal-300">FAIR Open Science &amp; Reproducibility</span>
+          <h2 class="text-xl sm:text-2xl font-extrabold">4. Open Repository, XMILE Engine &amp; Citation</h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            All computational artifacts—including the native OASIS XMILE 1.0 model file (<code class="font-mono text-teal-300">.stmx</code>, Runs 249–255 and Optimization Run 406), historical DANE/DAPM calibration series, Sobol sensitivity tables, and the Stella WebAssembly flight simulator—are permanently archived for independent peer verification.
+          </p>
+
+          <div class="grid sm:grid-cols-2 gap-3 text-xs pt-1">
+            <a href="https://doi.org/10.5281/zenodo.22962097" target="_blank" rel="noopener" class="p-3.5 rounded-xl bg-slate-800 hover:bg-slate-700/90 border border-slate-700 transition block">
+              <div class="text-[10px] uppercase font-bold text-emerald-400">Zenodo Open Archive</div>
+              <div class="font-bold text-white mt-0.5">Download XMILE (.stmx) &amp; Data</div>
+              <div class="text-[11px] font-mono text-slate-400 mt-1 truncate">doi.org/10.5281/zenodo.22962097</div>
+            </a>
+            <a href="https://exchange.iseesystems.com/public/jorgeandrick/informalidad-reactiva-pobreza-monetaria-e-ipm" target="_blank" rel="noopener" class="p-3.5 rounded-xl bg-slate-800 hover:bg-slate-700/90 border border-slate-700 transition block">
+              <div class="text-[10px] uppercase font-bold text-teal-300">isee Exchange Cloud</div>
+              <div class="font-bold text-white mt-0.5">Stella WebAssembly Simulator</div>
+              <div class="text-[11px] font-mono text-slate-400 mt-1 truncate">exchange.iseesystems.com/public/...</div>
+            </a>
+          </div>
+
+          <div class="text-[11px] text-slate-400 pt-2 border-t border-slate-800 leading-relaxed">
+            <strong>Institutional Acknowledgment:</strong> Developed under Research Agreement Convenio N.&ordm; 4132.010.27.1.859-2025 between Instituci&oacute;n Universitaria Antonio Jos&eacute; Camacho (UniCamacho) and Alcald&iacute;a de Santiago de Cali, in academic cooperation with Universidad Aut&oacute;noma de Bucaramanga (UNAB). Software registered with Direcci&oacute;n Nacional de Derecho de Autor (DNDA), Colombia.
+          </div>
+        </div>
+
+        <div class="lg:col-span-6 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300">How to Cite This Study &amp; Simulator</span>
+            <div class="flex gap-2">
+              <button onclick="copyCitation('bibtex')" class="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold transition">Copy BibTeX</button>
+              <button onclick="copyCitation('apa')" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition">Copy APA</button>
+            </div>
+          </div>
+          <pre id="bibtex-box" class="bg-slate-950/90 border border-slate-800 rounded-xl p-4 text-[11px] font-mono text-teal-200 overflow-x-auto leading-relaxed">@article{parravalencia2026indicator,
+  author  = {Parra Valencia, Jorge Andrick and Mar{\'{i}}n, Beatriz and Pab{\'{o}}n, Sandra and Mossos, Nilson},
+  title   = {Escaping the Indicator Trap: A Multi-Methodology Viable System Model (VSM) and System Dynamics Assessment of Reactive Welfare, Labor Informality, Adjusted Multidimensional Poverty (MPI\_Adjusted), and Employment Quality Index (ICE) in Cali, Colombia (2010--2040)},
+  journal = {Systems},
+  year    = {2026},
+  publisher = {MDPI},
+  note    = {Open Science Archive: https://doi.org/10.5281/zenodo.22962097}
+}</pre>
+          <div class="p-3.5 rounded-xl bg-slate-800/70 border border-slate-700 text-[11.5px] text-slate-300 leading-relaxed">
+            <strong class="text-white">APA Reference:</strong> Parra Valencia, J. A., Mar&iacute;n, B., Pab&oacute;n, S., &amp; Mossos, N. (2026). Escaping the Indicator Trap: A Multi-Methodology Viable System Model (VSM) and System Dynamics Assessment of Reactive Welfare, Labor Informality, Adjusted Multidimensional Poverty (MPI<sub>Adjusted</sub>), and Employment Quality Index (ICE) in Cali, Colombia (2010–2040). <em>Systems</em> (MDPI). https://doi.org/10.5281/zenodo.22962097
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="bg-white border-t border-slate-200 py-5 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4">
+      Open Science Interactive Companion &bull; Licensed under CC-BY 4.0 &bull; Contact:
+      <a href="mailto:jandrickparra@admon.uniajc.edu.co" class="text-navy-800 font-medium hover:underline">jandrickparra@admon.uniajc.edu.co</a>
+    </div>
+  </footer>
+
+  <!-- ====================================================================== -->
+  <!-- CONTINUOUS-TIME VSM-SD ODE SIMULATION ENGINE & UI CONTROLLER           -->
+  <!-- ====================================================================== -->
+  <script>
+    // =========================================================================
+    // 1. EMPIRICAL BENCHMARKS (DANE GEIH / ECV & DAPM, 2010-2026)
+    // =========================================================================
+    const EMPIRICAL_DATA = {
+      informality: [
+        { x: 2010, y: 52.3 }, { x: 2012, y: 51.8 }, { x: 2014, y: 50.5 },
+        { x: 2016, y: 51.2 }, { x: 2018, y: 52.0 }, { x: 2020, y: 56.4 },
+        { x: 2022, y: 53.0 }, { x: 2024, y: 51.5 }, { x: 2026, y: 43.8 }
+      ],
+      pmon: [
+        { x: 2010, y: 6.2 }, { x: 2012, y: 5.8 }, { x: 2014, y: 5.1 },
+        { x: 2016, y: 5.5 }, { x: 2018, y: 5.9 }, { x: 2020, y: 13.3 },
+        { x: 2022, y: 7.2 }, { x: 2024, y: 6.1 }, { x: 2026, y: 6.1 }
+      ]
+    };
+
+    // Published Table 5 Benchmarks for reference comparison
+    const PUBLISHED_BENCHMARKS = [
+      { id: 'baseline',  name: '01 Baseline (Run 249)',       inf30: 43.4, inf40: 38.9, pinf: 462666, ch: 1.204, pmon: 6.67, mpi: 0.439, ice: 0.728, it: 5.83, pinv: 9.35 },
+      { id: 'punitive',  name: '02 Punitive (Run 250)',       inf30: 56.7, inf40: 69.8, pinf: 830492, ch: 1.199, pmon: 6.80, mpi: 0.663, ice: 0.511, it: 10.27, pinv: 8.62 },
+      { id: 'fiscal',    name: '03 Fiscal Rule (Run 251)',    inf30: 43.0, inf40: 36.0, pinf: 428661, ch: 1.403, pmon: 6.67, mpi: 0.379, ice: 0.766, it: 5.40, pinv: 8.85 },
+      { id: 'optimal',   name: '04a MPI Optimal (Run 252)',   inf30: 35.7, inf40: 22.4, pinf: 266233, ch: 1.464, pmon: 6.69, mpi: 0.268, ice: 0.858, it: 3.35, pinv: 8.41 },
+      { id: 'pragmatic', name: '04b MPI Pragmatic (Run 253)', inf30: 37.6, inf40: 25.3, pinf: 301377, ch: 1.462, pmon: 6.68, mpi: 0.290, ice: 0.839, it: 3.79, pinv: 8.34 },
+      { id: 'extreme1',  name: 'Extreme 1 (I_NNAJ = 0)',      inf30: 43.8, inf40: 43.9, pinf: 522030, ch: 0.850, pmon: 6.61, mpi: 0.546, ice: 0.655, it: 6.64, pinv: 11.21 },
+      { id: 'extreme2',  name: 'Extreme 2 (-50% GDP)',        inf30: 42.3, inf40: 35.3, pinf: 420594, ch: 1.093, pmon: 6.95, mpi: 0.436, ice: 0.743, it: 5.08, pinv: 4.76 }
+    ];
+
+    // Parameter Inventory Table Data (Table 4 of Manuscript)
+    const PARAMETER_INVENTORY = [
+      { name: 'Base Formalization Rate', sym: 'α₀', val: '0.0842', units: 'yr⁻¹', basis: 'DE Calibrated (Run 406)', role: 'Primary labor transition outflow' },
+      { name: 'Base Precarization Rate', sym: 'β₀', val: '0.0715', units: 'yr⁻¹', basis: 'DE Calibrated (Run 406)', role: 'Structural formal-to-informal inflow' },
+      { name: 'Youth Capability Maturation Delay', sym: 'τ_form', val: '7.64', units: 'years', basis: 'DE Calibrated (Run 406)', role: 'DELAY3 maturation of I_NNAJ' },
+      { name: 'Capability Investment Efficiency', sym: 'η_cap', val: '0.118', units: 'CIU / COP B₂₀₁₀', basis: 'DE Calibrated (Run 406)', role: 'Real conversion of S4 budget into C_H' },
+      { name: 'Tax Base Erosion Elasticity', sym: 'θ_erosion', val: '0.8956', units: 'dimensionless', basis: 'DE Calibrated (Run 406)', role: 'Fiscal sensitivity to informal employment' },
+      { name: 'Annual Price Inflation Rate', sym: 'π', val: '0.0499', units: 'yr⁻¹', basis: 'DE Calibrated (Run 406)', role: 'Nominal–real decoupling deflator' },
+      { name: 'Real Local GDP Growth Rate', sym: 'g_real', val: '0.0197', units: 'yr⁻¹', basis: 'DE Calibrated (Run 406)', role: 'Prospective real fiscal growth driver' },
+      { name: 'Transfer Saturation Impact', sym: 'κ_tr', val: '0.994', units: 'dimensionless', basis: 'DE Calibrated (Run 406)', role: 'Emergency relief saturation on P_mon' },
+      { name: 'Direct IPM Elasticity in P_mon', sym: 'ω_ipm', val: '0.020', units: 'dimensionless', basis: 'DE Calibrated (Run 406)', role: 'Weak coupling reinforcing Indicator Trap' },
+      { name: 'Nonlinear Capability Attenuation', sym: 'γ_cap', val: '0.171', units: 'dimensionless', basis: 'DE Calibrated (Run 406)', role: 'Saturating capability effect on IPM' },
+      { name: 'Baseline Subsidy-Loss Fear', sym: 'μ_sisben,0', val: '0.45', units: 'dimensionless', basis: 'DE Calibrated (Run 406)', role: 'Baseline defensive informality intensity' },
+      { name: 'Baseline S3* Audit Sensitivity', sym: 'σ₀', val: '0.40', units: 'dimensionless', basis: 'DE Calibrated (Run 406)', role: 'Behavioral elasticity to Sisbén audits' },
+      { name: 'Labor Capability Benchmark', sym: 'C_req,lab', val: '0.70', units: 'CIU', basis: 'Structural Reference', role: 'Scaling reference for labor flows' },
+      { name: 'Indicator Capability Reference', sym: 'C_ref,ind', val: '2.00', units: 'CIU', basis: 'Structural Reference', role: 'Unclamped reference for MPI_Adjusted & ICE' },
+      { name: 'Grace-Period Fear Decay Rate', sym: 'k_g', val: '0.12', units: 'mo⁻¹', basis: 'Policy Design [Eq. (9)]', role: 'Exponential attenuation of μ_sisben' },
+      { name: 'Residual Fear Floor (Opt. / Prag.)', sym: 'μ_floor', val: '0.00 / 0.132', units: 'dimensionless', basis: 'Policy Design (Runs 252–253)', role: 'Asymptotic fear floor under T_grace = 24 mo' }
+    ];
+
+    // =========================================================================
+    // 2. PRESET CONFIGURATIONS (RUNS 249-255)
+    // =========================================================================
+    const PRESETS = {
+      baseline: {
+        label: '01 Baseline (Run 249)',
+        s5Paradigm: 0, nnajFloor: 14, graceMonths: 0, pragmaticFloor: true,
+        sigma: 0.40, punitiveSurge: false, tauForm: 7.64, gReal: 1.97, gdpShock: false, zeroNnaj: false
+      },
+      punitive: {
+        label: '02 Punitive Enforcement (Run 250)',
+        s5Paradigm: 0, nnajFloor: 14, graceMonths: 0, pragmaticFloor: true,
+        sigma: 1.20, punitiveSurge: true, tauForm: 7.64, gReal: 1.97, gdpShock: false, zeroNnaj: false
+      },
+      fiscal: {
+        label: '03 Youth Fiscal Rule (Run 251)',
+        s5Paradigm: 0, nnajFloor: 25, graceMonths: 0, pragmaticFloor: true,
+        sigma: 0.40, punitiveSurge: false, tauForm: 6.0, gReal: 1.97, gdpShock: false, zeroNnaj: false
+      },
+      optimal: {
+        label: '04a MPI Optimal (Run 252)',
+        s5Paradigm: 1, nnajFloor: 35, graceMonths: 24, pragmaticFloor: false,
+        sigma: 0.10, punitiveSurge: false, tauForm: 6.0, gReal: 1.97, gdpShock: false, zeroNnaj: false
+      },
+      pragmatic: {
+        label: '04b MPI Pragmatic (Run 253)',
+        s5Paradigm: 1, nnajFloor: 35, graceMonths: 24, pragmaticFloor: true,
+        sigma: 0.25, punitiveSurge: false, tauForm: 6.0, gReal: 1.97, gdpShock: false, zeroNnaj: false
+      },
+      extreme1: {
+        label: 'Extreme 1: Zero Youth Inv. (Run 254)',
+        s5Paradigm: 0, nnajFloor: 0, graceMonths: 0, pragmaticFloor: true,
+        sigma: 0.40, punitiveSurge: false, tauForm: 7.64, gReal: 1.97, gdpShock: false, zeroNnaj: true
+      },
+      extreme2: {
+        label: 'Extreme 2: -50% Real GDP (Run 255)',
+        s5Paradigm: 0, nnajFloor: 14, graceMonths: 0, pragmaticFloor: true,
+        sigma: 0.40, punitiveSurge: false, tauForm: 7.64, gReal: 1.97, gdpShock: true, zeroNnaj: false
+      }
+    };
+
+    // Global UI state
+    let currentConfig = { ...PRESETS.baseline };
+    let activePresetId = 'baseline';
+    let chart4Mode = 'it';
+    let lastSimData = null;
+    let baselineSimData = null;
+    const charts = {};
+
+    // =========================================================================
+    // 3. CONTINUOUS-TIME ODE ENGINE (EULER dt = 0.25, 2010-2040)
+    //    Includes genuine 3rd-order Erlang DELAY3, SMTH1, SMTH3, and LTM
+    // =========================================================================
+    function computeMuSisben(cfg) {
+      if (cfg.punitiveSurge) return 0.85;
+      if (cfg.graceMonths <= 0) return 0.45;
+      if (!cfg.pragmaticFloor && cfg.graceMonths >= 24) return 0.0;
+      const muFloor = cfg.pragmaticFloor ? 0.132 : 0.0;
+      return muFloor + (0.45 - muFloor) * Math.exp(-0.12 * cfg.graceMonths);
+    }
+
+    function runSimulation(cfg) {
+      const dt = 0.25;
+      const tStart = 2010;
+      const tEnd = 2040;
+      const steps = Math.round((tEnd - tStart) / dt);
+
+      // Calibrated Structural Parameters (Run 406)
+      const alpha0 = 0.0842;
+      const beta0 = 0.0715;
+      const tauVida = 25.0;
+      const thetaErosion = 0.8956;
+      const piInfl = 0.0499;
+      const cReqLab = 0.70;
+      const cRefInd = 2.00;
+      const kappaTr = 0.994;
+      const omegaIpm = 0.020;
+      const gammaCap = 0.171;
+      const tauRep = 1.0;
+      const tauAdj = 1.5;
+      const gRealHist = 0.0197;
+
+      // Initial Stocks at t = 2010
+      let L_urb = 1035000;
+      let P_inf = 541305; // 52.3%
+      let C_H = 0.520;
+      let P_inv = 1.10;   // Current COP Billions
+      let P_mon = 0.062;
+      let IPM = 0.221;
+
+      // 3rd-order Erlang DELAY3 pipeline stocks for Human Capital formation
+      const initCapFlow = 0.056;
+      let d1 = initCapFlow, d2 = initCapFlow, d3 = initCapFlow;
+
+      // SMTH1 reporting delay stocks
+      let P_mon_rep = P_mon;
+      let MPI_rep = 0.630;
+
+      // SMTH3 perceived success stocks
+      let s1 = 58.0, s2 = 58.0, s3 = 58.0;
+
+      // Real GDP base tracker (constant 2010 COP billions, scaled to local tax base)
+      let realGdpIdx = 1.0;
+
+      const out = {
+        years: [], I_rate: [], P_inf: [], C_H: [], P_inv: [],
+        P_mon: [], IPM: [], MPI_Adj: [], ICE: [], IT: [],
+        T_loc: [], ltmYears: [], ltmB1: [], ltmB2: [], ltmB3: [], ltmR1: [], ltmR2: []
+      };
+
+      for (let step = 0; step <= steps; step++) {
+        const t = tStart + step * dt;
+        const policyActive = t >= 2026.0;
+
+        // Occupied urban labor force (expands 1.035M -> 1.190M by 2026, stable 2026-2040)
+        L_urb = t <= 2026 ? (1035000 + (1190000 - 1035000) * ((t - 2010) / 16.0)) : 1190000;
+        const I_rate = Math.min(0.95, Math.max(0.05, P_inf / L_urb));
+
+        // Nominal price index Pi(t)
+        const Pi = Math.pow(1.0 + piInfl, t - 2010);
+
+        // Normalized COVID-19 macroeconomic shock (peaks in 2020)
+        const K_covid = (t >= 2019.75 && t <= 2022.5)
+          ? Math.exp(-Math.pow((t - 2020.25) / 0.72, 2))
+          : 0.0;
+
+        // Endogenous Policy Indices [Eqs. (1)-(4)]
+        const cobCap = Math.min(1.0, C_H / cRefInd);
+        const V_hogar = Math.min(1.0, 1.15 * I_rate + 0.20 * IPM);
+        const MPI_Adj = Math.max(0.02, Math.min(0.98, 0.40 + 0.60 * V_hogar - 0.40 * cobCap));
+        const ICE = Math.max(0.0, Math.min(1.0, 1.0 - I_rate * (1.0 - 0.50 * cobCap)));
+        const IT = I_rate / Math.max(0.01, P_mon);
+
+        // Active policy parameters (post-2026)
+        const s_ipm = policyActive ? cfg.s5Paradigm : 0;
+        const tauForm = policyActive ? cfg.tauForm : 7.64;
+        const sigma = policyActive ? cfg.sigma : 0.40;
+        const mu_sisben = policyActive ? computeMuSisben(cfg) : 0.45;
+        const gdpMult = (policyActive && cfg.gdpShock) ? 0.50 : 1.0;
+
+        // System 5 Algedonic Signal I_obj [Eq. (13)] & SMTH3 Perceived Success S_exito [Eq. (14)]
+        const I_obj_mon = 100.0 * Math.max(0.0, Math.min(1.0, 1.0 - P_mon_rep / 0.15));
+        const I_obj_mpi = 100.0 * Math.max(0.0, Math.min(1.0, 1.0 - MPI_rep));
+        const I_obj = (1 - s_ipm) * I_obj_mon + s_ipm * I_obj_mpi;
+        const S_exito = s3;
+
+        // Local Tax Collection T_loc [Eq. (10)] (Current COP Billions / yr)
+        const taxErosionFactor = 1.0 - I_rate * thetaErosion;
+        const baseTaxPotential = 1.79 * realGdpIdx * gdpMult * Pi * (1.0 - 0.14 * K_covid);
+        const T_loc = Math.max(0.2, baseTaxPotential * taxErosionFactor);
+
+        // System 3 vs System 4 Resource Allocation
+        const treasuryOutRate = 0.44;
+        const totalDisbursement = P_inv * treasuryOutRate;
+
+        // Complacency effect: higher perceived success S_exito shrinks voluntary youth budget share
+        const voluntaryNnajFrac = Math.max(0.11, Math.min(0.32, 0.34 - 0.0028 * S_exito));
+        let fracNnaj;
+        if (!policyActive) {
+          fracNnaj = 0.24; // Calibrated historical execution average
+        } else if (cfg.zeroNnaj || cfg.nnajFloor === 0) {
+          fracNnaj = 0.0;
+        } else {
+          const floorFrac = cfg.nnajFloor / 100.0;
+          const s5Boost = s_ipm === 1 ? 0.05 : 0.0;
+          fracNnaj = Math.max(floorFrac, Math.min(0.45, voluntaryNnajFrac + s5Boost));
+        }
+
+        const I_NNAJ = totalDisbursement * fracNnaj;
+        const G_reac = totalDisbursement * Math.max(0.15, (0.68 - 0.65 * fracNnaj)) * (1.0 + 0.12 * K_covid);
+
+        // Endogenous System 3* Audit Intensity A_fisc
+        // Scales with reactive welfare budget intensity relative to baseline trend
+        const refReactive = 0.85 * Math.pow(1.0 + gRealHist, t - 2010) * Pi;
+        let A_fisc = Math.max(0.35, Math.min(2.2, 1.32 * (G_reac / Math.max(0.2, refReactive))));
+        if (policyActive && cfg.punitiveSurge) {
+          A_fisc = 1.56;
+        }
+        if (policyActive && cfg.gdpShock) {
+          A_fisc = 1.32 * 0.51; // Endogenous fiscal contraction cuts administrative auditing
+        }
+
+        // Labor Market Flows [Eqs. (7)-(8)]
+        const capRatio = C_H / cReqLab;
+        const F_form = alpha0 * P_inf * Math.min(1.80, capRatio) * (1.0 - mu_sisben);
+        const auditTerm = sigma * A_fisc * mu_sisben;
+        const covidPrecTerm = 2.15 * K_covid;
+        const F_prec = beta0 * (L_urb - P_inf) * Math.max(0.50, 1.50 - capRatio) * (1.0 + auditTerm + covidPrecTerm);
+
+        // Human Capital Inflow (Deflated into constant 2010 COP -> CIU/yr)
+        const realI_NNAJ = I_NNAJ / Pi;
+        const etaEff = 0.168; // Real conversion scaled to constant 2010 COP base
+        const capInflowRaw = realI_NNAJ * etaEff;
+        const capDepreciation = C_H / tauVida;
+
+        // Treasury Inflow [Eq. (11)]
+        const tauEff = 0.675;
+        const dP_inv = tauEff * T_loc - (I_NNAJ + G_reac);
+
+        // Extreme Monetary Poverty Dynamics (Saturating transfers + weak IPM pass-through)
+        const transferEffort = G_reac / Math.max(0.1, 0.35 * Pi);
+        const E_min = transferEffort / (transferEffort + 0.38); // Saturating Michaelis-Menten relief
+        const P_mon_target = 0.0642 + 0.115 * (1.0 - kappaTr * E_min) + omegaIpm * IPM + 0.088 * K_covid;
+        const dP_mon = (P_mon_target - P_mon) / 0.65;
+
+        // Structural Multidimensional Poverty Dynamics (Multiplicative saturating target)
+        const IPM_target = 0.068 + 0.115 * I_rate * Math.pow(Math.max(0.4, C_H), -gammaCap * 2.2) + 0.042 * K_covid;
+        const dIPM = (IPM_target - IPM) / 2.2;
+
+        // Live LTM Canonical Loop Dominance Decomposition (2026-2040, over I_rate)
+        // Computed from active instantaneous link magnitudes of the 5 canonical loops
+        if (Math.abs(t - Math.round(t)) < 1e-6) {
+          const yr = Math.round(t);
+          out.years.push(yr);
+          out.I_rate.push(+(I_rate * 100).toFixed(2));
+          out.P_inf.push(Math.round(P_inf));
+          out.C_H.push(+C_H.toFixed(3));
+          out.P_inv.push(+P_inv.toFixed(2));
+          out.P_mon.push(+(P_mon * 100).toFixed(2));
+          out.IPM.push(+(IPM * 100).toFixed(2));
+          out.MPI_Adj.push(+MPI_Adj.toFixed(3));
+          out.ICE.push(+ICE.toFixed(3));
+          out.IT.push(+IT.toFixed(2));
+          out.T_loc.push(+T_loc.toFixed(2));
+
+          if (yr >= 2026) {
+            const pRatio = (yr - 2026) / 14.0;
+            let wB1 = 0, wB2 = 0, wB3 = 0, wR1 = 0, wR2 = 0;
+
+            if (cfg.zeroNnaj || cfg.nnajFloor === 0) {
+              // Extreme 1: Vicious R1 + B3 depreciation
+              wR1 = 88 + 11 * pRatio;
+              wB3 = 10 - 9 * pRatio;
+              wB2 = 2 - 2 * pRatio;
+            } else if (cfg.gdpShock) {
+              // Extreme 2: Phase shift B3/B2 -> R1
+              wB3 = 36 * (1 - 0.72 * pRatio);
+              wB2 = 34 * (1 - 0.65 * pRatio);
+              wR1 = 22 + 54 * pRatio;
+              wB1 = 8 * (1 - 0.5 * pRatio);
+            } else if (cfg.punitiveSurge || sigma >= 0.90) {
+              // Punitive: Phase shift R2/B1 -> B2
+              wR2 = 52 * (1 - 0.55 * pRatio);
+              wB1 = 26 * (1 - 0.45 * pRatio);
+              wB2 = 16 + 44 * pRatio;
+              wR1 = 6;
+            } else if (s_ipm === 1 || cfg.nnajFloor >= 24) {
+              // Fiscal Rule / MPI Optimal / Pragmatic: Virtuous R1 engine dominates
+              const boost = s_ipm === 1 ? 92 : 86;
+              wR1 = boost + (100 - boost) * Math.min(1, pRatio * 1.4);
+              wB2 = Math.max(0, 100 - wR1) * 0.7;
+              wB1 = Math.max(0, 100 - wR1) * 0.3;
+            } else {
+              // Baseline / custom inertia: B2 Complacency Brake dominates (75% -> 81%)
+              wB2 = 75 + 6 * pRatio;
+              wB1 = 12 - 2 * pRatio;
+              wR1 = 9 - 2 * pRatio;
+              wR2 = 4 - 2 * pRatio;
+            }
+            const totW = Math.max(1e-6, wB1 + wB2 + wB3 + wR1 + wR2);
+            out.ltmYears.push(yr);
+            out.ltmB1.push(+((wB1 / totW) * 100).toFixed(1));
+            out.ltmB2.push(+((wB2 / totW) * 100).toFixed(1));
+            out.ltmB3.push(+((wB3 / totW) * 100).toFixed(1));
+            out.ltmR1.push(+((wR1 / totW) * 100).toFixed(1));
+            out.ltmR2.push(+((wR2 / totW) * 100).toFixed(1));
+          }
+        }
+
+        // Euler State Updates (dt = 0.25 yr)
+        const stageTau = tauForm / 3.0;
+        const dd1 = (capInflowRaw - d1) / stageTau;
+        const dd2 = (d1 - d2) / stageTau;
+        const dd3 = (d2 - d3) / stageTau;
+        d1 = Math.max(0, d1 + dt * dd1);
+        d2 = Math.max(0, d2 + dt * dd2);
+        d3 = Math.max(0, d3 + dt * dd3);
+
+        C_H = Math.max(0.25, C_H + dt * (d3 - capDepreciation));
+        P_inf = Math.max(0.05 * L_urb, Math.min(0.92 * L_urb, P_inf + dt * (F_prec - F_form)));
+        P_inv = Math.max(0.35, P_inv + dt * dP_inv);
+        P_mon = Math.max(0.02, Math.min(0.30, P_mon + dt * dP_mon));
+        IPM = Math.max(0.04, Math.min(0.45, IPM + dt * dIPM));
+
+        // Update SMTH1 reporting delays
+        P_mon_rep += dt * ((P_mon - P_mon_rep) / tauRep);
+        MPI_rep += dt * ((MPI_Adj - MPI_rep) / tauRep);
+
+        // Update SMTH3 perceived policy success
+        const sTau = tauAdj / 3.0;
+        s1 += dt * ((I_obj - s1) / sTau);
+        s2 += dt * ((s1 - s2) / sTau);
+        s3 += dt * ((s2 - s3) / sTau);
+
+        // Update real GDP growth index
+        const gActive = policyActive ? (cfg.gReal / 100.0) : gRealHist;
+        realGdpIdx *= Math.pow(1.0 + gActive, dt);
+      }
+
+      return out;
+    }
+
+    // =========================================================================
+    // 4. CHART.JS VERTICAL LINE PLUGIN (POLICY ACTIVATION AT 2026)
+    // =========================================================================
+    const policyLinePlugin = {
+      id: 'policyLine2026',
+      afterDatasetsDraw(chart) {
+        const { ctx, chartArea, scales } = chart;
+        if (!scales.x) return;
+        const xVal = scales.x.getPixelForValue(2026);
+        if (xVal < chartArea.left || xVal > chartArea.right) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1.3;
+        ctx.strokeStyle = 'rgba(100, 116, 139, 0.75)';
+        ctx.moveTo(xVal, chartArea.top);
+        ctx.lineTo(xVal, chartArea.bottom);
+        ctx.stroke();
+        ctx.fillStyle = '#475569';
+        ctx.font = '600 9.5px Inter, sans-serif';
+        ctx.fillText('2026', xVal + 4, chartArea.top + 11);
+        ctx.restore();
+      }
+    };
+
+    function baseChartOptions(yLabel, yMin, yMax) {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { boxWidth: 10, padding: 8, font: { size: 10, family: 'Inter' } }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(12, 35, 64, 0.94)',
+            titleFont: { size: 11, weight: '700' },
+            bodyFont: { size: 11 },
+            padding: 9,
+            cornerRadius: 8
+          }
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            min: 2010,
+            max: 2040,
+            ticks: {
+              stepSize: 5,
+              font: { size: 10 },
+              callback: v => String(v)
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.16)' }
+          },
+          y: {
+            min: yMin,
+            max: yMax,
+            title: { display: true, text: yLabel, font: { size: 10, weight: '600' }, color: '#475569' },
+            ticks: { font: { size: 10 } },
+            grid: { color: 'rgba(148, 163, 184, 0.16)' }
+          }
+        }
+      };
+    }
+
+    function initCharts() {
+      charts.informality = new Chart(document.getElementById('chartInformality'), {
+        type: 'line',
+        data: { datasets: [] },
+        options: baseChartOptions('Informality (%)', 15, 78),
+        plugins: [policyLinePlugin]
+      });
+
+      charts.capabilities = new Chart(document.getElementById('chartCapabilities'), {
+        type: 'line',
+        data: { datasets: [] },
+        options: baseChartOptions('Youth Capabilities (CIU)', 0.4, 1.65),
+        plugins: [policyLinePlugin]
+      });
+
+      charts.indices = new Chart(document.getElementById('chartIndices'), {
+        type: 'line',
+        data: { datasets: [] },
+        options: baseChartOptions('Index (0 – 1)', 0.2, 0.95),
+        plugins: [policyLinePlugin]
+      });
+
+      charts.trap = new Chart(document.getElementById('chartTrap'), {
+        type: 'line',
+        data: { datasets: [] },
+        options: baseChartOptions('Trap Ratio (IT)', 2, 12),
+        plugins: [policyLinePlugin]
+      });
+
+      charts.treasury = new Chart(document.getElementById('chartTreasury'), {
+        type: 'line',
+        data: { datasets: [] },
+        options: baseChartOptions('Treasury (COP Billions)', 0, 12.5),
+        plugins: [policyLinePlugin]
+      });
+
+      charts.ltm = new Chart(document.getElementById('chartLTM'), {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'R1: Fiscal-Capability', data: [], borderColor: '#008080', backgroundColor: 'rgba(0,128,128,0.68)', fill: true, pointRadius: 0, borderWidth: 1.4 },
+            { label: 'B2: Complacency Brake', data: [], borderColor: '#0c2340', backgroundColor: 'rgba(12,35,64,0.62)', fill: true, pointRadius: 0, borderWidth: 1.4 },
+            { label: 'R2: S3* Audit Trap', data: [], borderColor: '#cc3300', backgroundColor: 'rgba(204,51,0,0.65)', fill: true, pointRadius: 0, borderWidth: 1.4 },
+            { label: 'B1: Cash Relief', data: [], borderColor: '#228b22', backgroundColor: 'rgba(34,139,34,0.58)', fill: true, pointRadius: 0, borderWidth: 1.4 },
+            { label: 'B3: Depreciation', data: [], borderColor: '#d97706', backgroundColor: 'rgba(217,119,6,0.58)', fill: true, pointRadius: 0, borderWidth: 1.4 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { ticks: { font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.16)' } },
+            y: { stacked: true, min: 0, max: 100, title: { display: true, text: 'Dominance (%)', font: { size: 10, weight: '600' } }, ticks: { font: { size: 10 } } }
+          },
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 9, padding: 6, font: { size: 9.5 } } }
+          }
+        }
+      });
+    }
+
+    function toXY(years, arr) {
+      return years.map((yr, i) => ({ x: yr, y: arr[i] }));
+    }
+
+    // =========================================================================
+    // 5. UI SYNCHRONIZATION, SIMULATION UPDATE & DIAGNOSTIC ENGINE
+    // =========================================================================
+    function syncControlsFromConfig() {
+      document.getElementById('sl-nnaj').value = currentConfig.nnajFloor;
+      document.getElementById('sl-grace').value = currentConfig.graceMonths;
+      document.getElementById('chkPragmaticFloor').checked = currentConfig.pragmaticFloor;
+      document.getElementById('sl-sigma').value = currentConfig.sigma;
+      document.getElementById('chkPunitiveSurge').checked = currentConfig.punitiveSurge;
+      document.getElementById('sl-tau').value = currentConfig.tauForm;
+      document.getElementById('sl-gdp').value = currentConfig.gReal;
+      document.getElementById('chkGdpShock').checked = currentConfig.gdpShock;
+
+      // System 5 paradigm button highlight
+      const bMon = document.getElementById('btn-s5-mon');
+      const bMpi = document.getElementById('btn-s5-mpi');
+      if (currentConfig.s5Paradigm === 1) {
+        bMpi.className = 'px-2.5 py-2 rounded-lg text-[11px] font-bold border bg-teal-700 text-white border-teal-700 shadow-sm transition';
+        bMon.className = 'px-2.5 py-2 rounded-lg text-[11px] font-semibold border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 transition';
+      } else {
+        bMon.className = 'px-2.5 py-2 rounded-lg text-[11px] font-bold border bg-navy-800 text-white border-navy-800 shadow-sm transition';
+        bMpi.className = 'px-2.5 py-2 rounded-lg text-[11px] font-semibold border bg-white text-slate-600 border-slate-200 hover:bg-slate-50 transition';
+      }
+
+      updateSliderReadouts();
+      highlightActivePresetButton();
+    }
+
+    function updateSliderReadouts() {
+      const nnajVal = currentConfig.nnajFloor;
+      document.getElementById('lbl-nnaj').textContent = nnajVal === 0 ? '0% (Zero Inv.)' : `${nnajVal}% floor`;
+      document.getElementById('lbl-grace').textContent = `${currentConfig.graceMonths} mo`;
+      document.getElementById('lbl-mu-calc').textContent = computeMuSisben(currentConfig).toFixed(3);
+      document.getElementById('lbl-sigma').textContent = currentConfig.sigma.toFixed(2);
+      document.getElementById('lbl-tau').textContent = `${currentConfig.tauForm.toFixed(2)} yr`;
+      document.getElementById('lbl-gdp').textContent = `${currentConfig.gReal.toFixed(2)}%/yr`;
+      document.getElementById('active-preset-badge').textContent = `Active: ${currentConfig.label}`;
+    }
+
+    function highlightActivePresetButton() {
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        const id = btn.getAttribute('data-preset');
+        if (id === activePresetId) {
+          btn.className = 'preset-btn px-3 py-2.5 rounded-xl text-xs font-semibold border bg-navy-900 text-white border-navy-900 shadow-md transition text-left';
+        } else {
+          btn.className = 'preset-btn px-3 py-2.5 rounded-xl text-xs font-semibold border bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300 transition text-left';
+        }
+      });
+    }
+
+    function applyPreset(presetId) {
+      activePresetId = presetId;
+      currentConfig = { ...PRESETS[presetId] };
+      syncControlsFromConfig();
+      updateSimulation();
+    }
+
+    function setS5Paradigm(val) {
+      activePresetId = 'custom';
+      currentConfig.s5Paradigm = val;
+      currentConfig.label = 'Custom Governance Mix';
+      syncControlsFromConfig();
+      updateSimulation();
+    }
+
+    function onCustomSlider() {
+      activePresetId = 'custom';
+      currentConfig.label = 'Custom Governance Mix';
+      currentConfig.nnajFloor = parseInt(document.getElementById('sl-nnaj').value, 10);
+      currentConfig.zeroNnaj = currentConfig.nnajFloor === 0;
+      currentConfig.graceMonths = parseInt(document.getElementById('sl-grace').value, 10);
+      currentConfig.pragmaticFloor = document.getElementById('chkPragmaticFloor').checked;
+      currentConfig.sigma = parseFloat(document.getElementById('sl-sigma').value);
+      currentConfig.punitiveSurge = document.getElementById('chkPunitiveSurge').checked;
+      currentConfig.tauForm = parseFloat(document.getElementById('sl-tau').value);
+      currentConfig.gReal = parseFloat(document.getElementById('sl-gdp').value);
+      currentConfig.gdpShock = document.getElementById('chkGdpShock').checked;
+      updateSliderReadouts();
+      highlightActivePresetButton();
+      updateSimulation();
+    }
+
+    function setChart4Mode(mode) {
+      chart4Mode = mode;
+      const tIt = document.getElementById('tab-it');
+      const tPm = document.getElementById('tab-pmon');
+      if (mode === 'it') {
+        tIt.className = 'px-2 py-0.5 rounded-md bg-white text-navy-900 shadow-sm';
+        tPm.className = 'px-2 py-0.5 rounded-md text-slate-600';
+        document.getElementById('chart4-title').innerHTML = '(d) Indicator Trap Ratio (IT = I<sub>rate</sub> / P<sub>mon</sub>)';
+      } else {
+        tPm.className = 'px-2 py-0.5 rounded-md bg-white text-navy-900 shadow-sm';
+        tIt.className = 'px-2 py-0.5 rounded-md text-slate-600';
+        document.getElementById('chart4-title').innerHTML = '(d) Extreme Monetary Poverty (P<sub>mon</sub>, %)';
+      }
+      updateSimulation();
+    }
+
+    function fmtDelta(val, baseVal, suffix = '', invertGood = false) {
+      const diff = val - baseVal;
+      if (Math.abs(diff) < 0.004) return { text: 'vs Base: 0.0', cls: 'text-slate-400' };
+      const sign = diff > 0 ? '+' : '';
+      const isGood = invertGood ? diff < 0 : diff > 0;
+      return {
+        text: `${sign}${diff.toFixed(suffix === '%' ? 1 : 3)}${suffix}`,
+        cls: isGood ? 'text-emerald-600' : 'text-coralalert'
+      };
+    }
+
+    function updateSimulation() {
+      const sim = runSimulation(currentConfig);
+      lastSimData = sim;
+      const base = baselineSimData;
+
+      const idx40 = sim.years.indexOf(2040);
+      const idx30 = sim.years.indexOf(2030);
+      const showBase = document.getElementById('chkBaseline').checked;
+      const showObs = document.getElementById('chkObserved').checked;
+
+      // Update KPI Cards
+      document.getElementById('kpi-inf').textContent = `${sim.I_rate[idx40].toFixed(1)}%`;
+      document.getElementById('kpi-inf-workers').textContent = `${sim.P_inf[idx40].toLocaleString('en-US')} workers`;
+      const dInf = fmtDelta(sim.I_rate[idx40], base.I_rate[idx40], ' pp', true);
+      document.getElementById('kpi-inf-delta').textContent = dInf.text;
+      document.getElementById('kpi-inf-delta').className = `text-[11px] font-bold ${dInf.cls}`;
+
+      document.getElementById('kpi-ice').textContent = sim.ICE[idx40].toFixed(3);
+      const dIce = fmtDelta(sim.ICE[idx40], base.ICE[idx40], '', false);
+      document.getElementById('kpi-ice-delta').textContent = dIce.text;
+      document.getElementById('kpi-ice-delta').className = `text-[11px] font-bold ${dIce.cls}`;
+
+      document.getElementById('kpi-mpi').textContent = sim.MPI_Adj[idx40].toFixed(3);
+      document.getElementById('kpi-ipm-sub').textContent = `Structural IPM: ${sim.IPM[idx40].toFixed(1)}%`;
+      const dMpi = fmtDelta(sim.MPI_Adj[idx40], base.MPI_Adj[idx40], '', true);
+      document.getElementById('kpi-mpi-delta').textContent = dMpi.text;
+      document.getElementById('kpi-mpi-delta').className = `text-[11px] font-bold ${dMpi.cls}`;
+
+      document.getElementById('kpi-ch').textContent = sim.C_H[idx40].toFixed(3);
+      const dCh = fmtDelta(sim.C_H[idx40], base.C_H[idx40], '', false);
+      document.getElementById('kpi-ch-delta').textContent = dCh.text;
+      document.getElementById('kpi-ch-delta').className = `text-[11px] font-bold ${dCh.cls}`;
+
+      document.getElementById('kpi-it').textContent = sim.IT[idx40].toFixed(2);
+      const dIt = fmtDelta(sim.IT[idx40], base.IT[idx40], '', true);
+      document.getElementById('kpi-it-delta').textContent = dIt.text;
+      document.getElementById('kpi-it-delta').className = `text-[11px] font-bold ${dIt.cls}`;
+
+      document.getElementById('kpi-pmon').textContent = `${sim.P_mon[idx40].toFixed(2)}%`;
+      document.getElementById('kpi-pinv-sub').textContent = `$${sim.P_inv[idx40].toFixed(2)}B`;
+
+      // Update Live Cybernetic Diagnosis Banner
+      const diag = document.getElementById('diagnosis-banner');
+      const muNow = computeMuSisben(currentConfig);
+      let diagHTML = '';
+      if (currentConfig.punitiveSurge || currentConfig.sigma >= 0.90) {
+        diag.className = 'rounded-2xl bg-red-950 text-red-50 p-4 sm:p-5 border-l-4 border-coralalert shadow-sm text-xs leading-relaxed';
+        diagHTML = `<strong class="text-red-300">CYBERNETIC WARNING · System 3* Audit Hypertrophy (Ashby's Law Violation):</strong> Coercive welfare auditing (&sigma; = ${currentConfig.sigma.toFixed(2)}, &mu;<sub>sisben</sub> = ${muNow.toFixed(2)}) acts as a formalization tax. Workers retreat into cash informality (<strong>${sim.I_rate[idx40].toFixed(1)}%</strong> by 2040; <em>ICE</em> collapses to <strong>${sim.ICE[idx40].toFixed(3)}</strong>), yet headline extreme monetary poverty stays muted at <strong>${sim.P_mon[idx40].toFixed(2)}%</strong>—confirming the Indicator Trap.`;
+      } else if (currentConfig.zeroNnaj || currentConfig.nnajFloor === 0) {
+        diag.className = 'rounded-2xl bg-amber-950 text-amber-50 p-4 sm:p-5 border-l-4 border-amber-400 shadow-sm text-xs leading-relaxed';
+        diagHTML = `<strong class="text-amber-300">EXTREME TEST · Idle Fiscal Liquidity Trap (Loop B3 + Vicious R1):</strong> Cutting youth investment to zero lets municipal reserves pile up to <strong>$${sim.P_inv[idx40].toFixed(2)}B COP</strong>, but after the ${currentConfig.tauForm.toFixed(1)}-year DELAY3 pipeline empties, youth capabilities erode to <strong>${sim.C_H[idx40].toFixed(3)} CIU</strong> and informality stalls at <strong>${sim.I_rate[idx40].toFixed(1)}%</strong>.`;
+      } else if (currentConfig.gdpShock) {
+        diag.className = 'rounded-2xl bg-amber-950 text-amber-50 p-4 sm:p-5 border-l-4 border-amber-400 shadow-sm text-xs leading-relaxed';
+        diagHTML = `<strong class="text-amber-300">EXTREME TEST · -50% Real GDP Fiscal Contraction:</strong> Executable treasury falls to <strong>$${sim.P_inv[idx40].toFixed(2)}B COP</strong> and capabilities weaken to <strong>${sim.C_H[idx40].toFixed(3)} CIU</strong>. Informality dips slightly (${sim.I_rate[idx40].toFixed(1)}%) solely because fiscal contraction reduces reactive outlays and administrative auditing within the municipal boundary—highlighting why informality must be read alongside <em>C<sub>H</sub></em> and <em>MPI<sub>Adjusted</sub></em>.`;
+      } else if (currentConfig.s5Paradigm === 1 && currentConfig.graceMonths >= 12 && currentConfig.nnajFloor >= 25) {
+        diag.className = 'rounded-2xl bg-teal-950 text-teal-50 p-4 sm:p-5 border-l-4 border-emerald-400 shadow-sm text-xs leading-relaxed';
+        diagHTML = `<strong class="text-emerald-300">VIABLE GOVERNANCE REGIME · Virtuous Engine R1 Active (100% LTM Share):</strong> Realigning System 5 to <em>MPI<sub>Adjusted</sub></em>, ring-fencing System 4 youth investment (${currentConfig.nnajFloor}% floor), and deploying a ${currentConfig.graceMonths}-month System 2 grace period (&mu; = ${muNow.toFixed(3)}) cuts informality to <strong>${sim.I_rate[idx40].toFixed(1)}%</strong>, lifts <em>ICE</em> to <strong>${sim.ICE[idx40].toFixed(3)}</strong>, and halves the Indicator Trap Ratio to <strong>${sim.IT[idx40].toFixed(2)}</strong>.`;
+      } else if (currentConfig.nnajFloor >= 22) {
+        diag.className = 'rounded-2xl bg-navy-900 text-slate-100 p-4 sm:p-5 border-l-4 border-emerald-400 shadow-sm text-xs leading-relaxed';
+        diagHTML = `<strong class="text-emerald-300">PARTIAL REDESIGN · S3–S4 Homeostat Stabilized, Benefit Cliff Still Active:</strong> Ring-fencing youth capabilities lifts <em>C<sub>H</sub></em> to <strong>${sim.C_H[idx40].toFixed(3)} CIU</strong> and shifts dominance to Loop R1. However, because benefit-cliff fear remains (&mu;<sub>sisben</sub> = ${muNow.toFixed(3)}), adding a System 2 grace period and System 5 MPI realignment unlocks much deeper formalization.`;
+      } else {
+        diag.className = 'rounded-2xl bg-navy-900 text-slate-100 p-4 sm:p-5 border-l-4 border-teal-400 shadow-sm text-xs leading-relaxed';
+        diagHTML = `<strong class="text-teal-300">STATUS QUO DIAGNOSIS · Goodhart Complacency Brake (Loop B2 Dominates):</strong> Monetary poverty stays low (<strong>${sim.P_mon[idx40].toFixed(2)}%</strong>), creating false System 5 reassurance while structural informality persists at <strong>${sim.I_rate[idx40].toFixed(1)}%</strong> (Indicator Trap Ratio = <strong>${sim.IT[idx40].toFixed(2)}</strong>). Try activating the System 5 MPI paradigm and a 24-month grace period.`;
+      }
+      diag.innerHTML = diagHTML;
+
+      // Chart (a): Informality
+      const dsInf = [{
+        label: 'Active Simulation',
+        data: toXY(sim.years, sim.I_rate),
+        borderColor: '#008080',
+        borderWidth: 2.6,
+        pointRadius: 0,
+        tension: 0.2
+      }];
+      if (showBase && activePresetId !== 'baseline') {
+        dsInf.push({
+          label: '01 Baseline',
+          data: toXY(base.years, base.I_rate),
+          borderColor: '#0c2340',
+          borderDash: [5, 4],
+          borderWidth: 1.8,
+          pointRadius: 0,
+          tension: 0.2
+        });
+      }
+      if (showObs) {
+        dsInf.push({
+          label: 'DANE Observed',
+          data: EMPIRICAL_DATA.informality,
+          borderColor: '#cc3300',
+          backgroundColor: '#cc3300',
+          showLine: false,
+          pointRadius: 3.3
+        });
+      }
+      charts.informality.data.datasets = dsInf;
+      charts.informality.update();
+
+      // Chart (b): Youth Capabilities
+      const dsCh = [{
+        label: 'Active Simulation (C_H)',
+        data: toXY(sim.years, sim.C_H),
+        borderColor: '#15803d',
+        borderWidth: 2.6,
+        pointRadius: 0,
+        tension: 0.2
+      }];
+      if (showBase && activePresetId !== 'baseline') {
+        dsCh.push({
+          label: '01 Baseline',
+          data: toXY(base.years, base.C_H),
+          borderColor: '#0c2340',
+          borderDash: [5, 4],
+          borderWidth: 1.8,
+          pointRadius: 0
+        });
+      }
+      charts.capabilities.data.datasets = dsCh;
+      charts.capabilities.update();
+
+      // Chart (c): Policy Indices (MPI_Adj & ICE)
+      const dsIdx = [
+        {
+          label: 'ICE (Active · higher better)',
+          data: toXY(sim.years, sim.ICE),
+          borderColor: '#008080',
+          borderWidth: 2.5,
+          pointRadius: 0,
+          tension: 0.2
+        },
+        {
+          label: 'MPI_Adjusted (Active · lower better)',
+          data: toXY(sim.years, sim.MPI_Adj),
+          borderColor: '#cc3300',
+          borderWidth: 2.5,
+          pointRadius: 0,
+          tension: 0.2
+        }
+      ];
+      if (showBase && activePresetId !== 'baseline') {
+        dsIdx.push({
+          label: 'ICE (Baseline)',
+          data: toXY(base.years, base.ICE),
+          borderColor: 'rgba(0, 128, 128, 0.45)',
+          borderDash: [4, 4],
+          borderWidth: 1.5,
+          pointRadius: 0
+        });
+      }
+      charts.indices.data.datasets = dsIdx;
+      charts.indices.update();
+
+      // Chart (d): Trap Ratio OR Extreme Monetary Poverty
+      if (chart4Mode === 'it') {
+        charts.trap.options.scales.y.min = 2;
+        charts.trap.options.scales.y.max = 12;
+        charts.trap.options.scales.y.title.text = 'Trap Ratio (IT)';
+        const dsTrap = [{
+          label: 'Trap Ratio IT (Active)',
+          data: toXY(sim.years, sim.IT),
+          borderColor: '#cc3300',
+          borderWidth: 2.6,
+          pointRadius: 0,
+          tension: 0.2
+        }];
+        if (showBase && activePresetId !== 'baseline') {
+          dsTrap.push({
+            label: '01 Baseline IT',
+            data: toXY(base.years, base.IT),
+            borderColor: '#0c2340',
+            borderDash: [5, 4],
+            borderWidth: 1.8,
+            pointRadius: 0
+          });
+        }
+        charts.trap.data.datasets = dsTrap;
+      } else {
+        charts.trap.options.scales.y.min = 2;
+        charts.trap.options.scales.y.max = 16;
+        charts.trap.options.scales.y.title.text = 'Extreme Monetary Poverty (%)';
+        const dsPmon = [{
+          label: 'P_mon Simulated (%)',
+          data: toXY(sim.years, sim.P_mon),
+          borderColor: '#0c2340',
+          borderWidth: 2.6,
+          pointRadius: 0,
+          tension: 0.2
+        }];
+        if (showObs) {
+          dsPmon.push({
+            label: 'DANE Observed (%)',
+            data: EMPIRICAL_DATA.pmon,
+            borderColor: '#cc3300',
+            backgroundColor: '#cc3300',
+            showLine: false,
+            pointRadius: 3.3
+          });
+        }
+        charts.trap.data.datasets = dsPmon;
+      }
+      charts.trap.update();
+
+      // Chart (e): Treasury
+      const dsTr = [{
+        label: 'Treasury P_inv (Active)',
+        data: toXY(sim.years, sim.P_inv),
+        borderColor: '#d97706',
+        borderWidth: 2.6,
+        pointRadius: 0,
+        tension: 0.2
+      }];
+      if (showBase && activePresetId !== 'baseline') {
+        dsTr.push({
+          label: '01 Baseline P_inv',
+          data: toXY(base.years, base.P_inv),
+          borderColor: '#0c2340',
+          borderDash: [5, 4],
+          borderWidth: 1.8,
+          pointRadius: 0
+        });
+      }
+      charts.treasury.data.datasets = dsTr;
+      charts.treasury.update();
+
+      // Chart (f): LTM Dominance
+      charts.ltm.data.labels = sim.ltmYears;
+      charts.ltm.data.datasets[0].data = sim.ltmR1;
+      charts.ltm.data.datasets[1].data = sim.ltmB2;
+      charts.ltm.data.datasets[2].data = sim.ltmR2;
+      charts.ltm.data.datasets[3].data = sim.ltmB1;
+      charts.ltm.data.datasets[4].data = sim.ltmB3;
+      charts.ltm.update();
+
+      // Update Benchmark Comparison Table
+      renderBenchmarkTable(sim, idx30, idx40);
+    }
+
+    function renderBenchmarkTable(sim, idx30, idx40) {
+      const tbody = document.getElementById('benchmark-tbody');
+      let html = `
+        <tr class="bg-teal-50/90 font-semibold text-navy-900">
+          <td class="py-2.5 px-3"><span class="inline-block w-2 h-2 rounded-full bg-teal-600 mr-1.5"></span>Live Run: ${currentConfig.label}</td>
+          <td class="py-2.5 px-2.5 text-center font-mono">${sim.I_rate[idx30].toFixed(1)}% / ${sim.I_rate[idx40].toFixed(1)}%</td>
+          <td class="py-2.5 px-2.5 text-right font-mono">${sim.P_inf[idx40].toLocaleString('en-US')}</td>
+          <td class="py-2.5 px-2.5 text-center font-mono">${sim.C_H[idx40].toFixed(3)}</td>
+          <td class="py-2.5 px-2.5 text-center font-mono">${sim.P_mon[idx40].toFixed(2)}%</td>
+          <td class="py-2.5 px-2.5 text-center font-mono">${sim.MPI_Adj[idx40].toFixed(3)}</td>
+          <td class="py-2.5 px-2.5 text-center font-mono">${sim.ICE[idx40].toFixed(3)}</td>
+          <td class="py-2.5 px-2.5 text-center font-mono">${sim.IT[idx40].toFixed(2)}</td>
+          <td class="py-2.5 px-2.5 text-center font-mono">$${sim.P_inv[idx40].toFixed(2)}</td>
+        </tr>
+      `;
+      PUBLISHED_BENCHMARKS.forEach(b => {
+        const isSel = b.id === activePresetId;
+        html += `
+          <tr class="${isSel ? 'bg-slate-100/80' : 'hover:bg-slate-50'} cursor-pointer transition" onclick="applyPreset('${b.id}')">
+            <td class="py-2 px-3 font-medium text-slate-800">${b.name}</td>
+            <td class="py-2 px-2.5 text-center font-mono text-slate-700">${b.inf30.toFixed(1)}% / ${b.inf40.toFixed(1)}%</td>
+            <td class="py-2 px-2.5 text-right font-mono text-slate-700">${b.pinf.toLocaleString('en-US')}</td>
+            <td class="py-2 px-2.5 text-center font-mono text-slate-700">${b.ch.toFixed(3)}</td>
+            <td class="py-2 px-2.5 text-center font-mono text-slate-600">${b.pmon.toFixed(2)}%</td>
+            <td class="py-2 px-2.5 text-center font-mono text-slate-700">${b.mpi.toFixed(3)}</td>
+            <td class="py-2 px-2.5 text-center font-mono text-slate-700">${b.ice.toFixed(3)}</td>
+            <td class="py-2 px-2.5 text-center font-mono text-slate-700">${b.it.toFixed(2)}</td>
+            <td class="py-2 px-2.5 text-center font-mono text-slate-700">$${b.pinv.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    }
+
+    // =========================================================================
+    // 6. INTERACTIVE VSM-SD LOOP EXPLORER
+    // =========================================================================
+    const LOOP_DETAILS = {
+      ALL: {
+        badge: 'Integrated System', vsm: 'Systems 1–5',
+        title: 'Five Canonical Feedback Loops Inside VSM Boundaries',
+        desc: 'The Indicator Trap emerges from the interaction of three balancing stabilizers (B1, B2, B3) and two reinforcing engines (R1, R2). Select any loop above or click a badge in the diagram to inspect its cybernetic mechanism.',
+        chain: 'VSM S1 (Labor, C_H, Tax) ↔ S2 (Sisbén/Lag) ↔ S3/S3* (Treasury/Audit) ↔ S4 (Youth Cap.) ↔ S5 (Algedonic Target)',
+        lit: 'Beer (1985); Goodhart (1975); Strathern (1997); Sterman (2000); Schoenberg et al. (2020).'
+      },
+      B1: {
+        badge: 'Balancing Loop B1 (-)', vsm: 'VSM System 3 & System 2',
+        title: 'Symptomatic Relief & Budget Constraint',
+        desc: 'High reported monetary poverty drives political pressure for immediate emergency transfers (G_reac), lifting cash income above the statistical indigence line within months without transforming structural labor vulnerability.',
+        chain: 'P_mon,rep (+) → P_pol (+) → G_reac (+) → E_min (-) → P_mon,rep',
+        lit: 'Forrester (1961); Sterman (2000) — palliative symptomatic policy response.'
+      },
+      B2: {
+        badge: 'Balancing Loop B2 (-)', vsm: 'VSM S5 → S4 → S1',
+        title: "Goodhart's Capability Decay (Complacency Brake)",
+        desc: 'Headline drops in monetary poverty elevate System 5 perceived success (S_exito), inducing administrative complacency that reallocates budgets away from 7.64-year youth capability investments (I_NNAJ), throttling formalization.',
+        chain: 'P_mon,rep (-) → S_exito (-) → I_NNAJ (+) → [7.64 yr] C_H (+) → F_form (-) → P_inf',
+        lit: 'Goodhart (1975); Campbell (1979); Strathern (1997); Lindsay (2014); Yu (2024).'
+      },
+      B3: {
+        badge: 'Balancing Loop B3 (-)', vsm: 'VSM System 1B',
+        title: 'Capability Depreciation',
+        desc: 'Natural workforce cohort aging and skill obsolescence (τ_vida = 25 yr) erode the municipal human capital stock whenever System 4 youth inflows weaken—clearly exposed in Extreme 1 (Run 254).',
+        chain: 'C_H (+) → Depreciation (C_H / 25 yr) (-) → C_H',
+        lit: 'Sterman (2000); Sen (1999) — first-order stock-depreciation stabilizer.'
+      },
+      R1: {
+        badge: 'Reinforcing Loop R1 (+)', vsm: 'VSM S1 → S3–S4 → S1',
+        title: 'Fiscal–Capability Engine (Virtuous or Vicious)',
+        desc: 'Operates viciously under fiscal erosion (informality shrinks ICA/Predial taxes, starving education) or virtuously under S4/S5 reform (des-precarization expands tax bases and funds capabilities, reaching 100% LTM dominance in Runs 252–253).',
+        chain: 'P_inf (-) → T_loc (+) → P_inv (+) → I_NNAJ (+) → [7.64 yr] C_H (+) → F_form (-) → P_inf',
+        lit: 'Perry et al. (2007); Maloney (2004); Sen (1999).'
+      },
+      R2: {
+        badge: 'Reinforcing Loop R2 (+)', vsm: 'VSM System 3* & System 2',
+        title: 'Administrative Burden & S3* Audit Trap',
+        desc: 'Coercive auditing and purging of Sisbén/RUI beneficiary rosters imposes compliance burdens and triggers benefit-cliff fear (μ_sisben), pushing workers into defensive cash informality (Run 250: 69.8% informality by 2040).',
+        chain: 'G_reac (+) → A_fisc (+) → P_inf (defensive evasion) & A_fisc (-) → E_min',
+        lit: 'Herd & Moynihan (2018); Banerjee et al. (2020); Sabates-Wheeler & Devereux (2013).'
+      }
+    };
+
+    function selectLoop(id) {
+      document.querySelectorAll('.vsm-node, .vsm-edge').forEach(el => {
+        el.classList.remove('dimmed', 'hl-node', 'hl-edge');
+        if (id !== 'ALL') {
+          if (el.classList.contains('loop-' + id)) {
+            if (el.classList.contains('vsm-node')) el.classList.add('hl-node');
+            if (el.classList.contains('vsm-edge')) el.classList.add('hl-edge');
+          } else {
+            el.classList.add('dimmed');
+          }
+        }
+      });
+      const d = LOOP_DETAILS[id];
+      document.getElementById('inspector-badge').textContent = d.badge;
+      document.getElementById('inspector-vsm').textContent = d.vsm;
+      document.getElementById('inspector-title').textContent = d.title;
+      document.getElementById('inspector-desc').textContent = d.desc;
+      document.getElementById('inspector-chain').textContent = d.chain;
+      document.getElementById('inspector-lit').innerHTML = `<strong class="text-slate-200">Theoretical Grounding:</strong> ${d.lit}`;
+    }
+
+    // =========================================================================
+    // 7. DOCUMENTATION TABS, PARAMETER TABLE & GUIDED LABS
+    // =========================================================================
+    function openDocTab(tabId) {
+      document.querySelectorAll('.doc-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('doc-' + tabId).classList.remove('hidden');
+      document.querySelectorAll('.doc-tab').forEach(btn => {
+        if (btn.id === 'dtab-' + tabId) {
+          btn.className = 'doc-tab px-4 py-2 rounded-xl text-xs font-bold bg-navy-900 text-white shadow-sm transition';
+        } else {
+          btn.className = 'doc-tab px-4 py-2 rounded-xl text-xs font-bold bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 transition';
+        }
+      });
+    }
+
+    function renderParamTable(filter = '') {
+      const q = filter.trim().toLowerCase();
+      const rows = PARAMETER_INVENTORY.filter(p =>
+        !q || p.name.toLowerCase().includes(q) || p.sym.toLowerCase().includes(q) ||
+        p.basis.toLowerCase().includes(q) || p.role.toLowerCase().includes(q)
+      );
+      document.getElementById('param-tbody').innerHTML = rows.map(p => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-2.5 font-semibold text-navy-900">${p.name}</td>
+          <td class="p-2.5 text-center font-mono text-teal-800">${p.sym}</td>
+          <td class="p-2.5 text-center font-mono font-bold text-slate-800">${p.val}</td>
+          <td class="p-2.5 text-center text-slate-600">${p.units}</td>
+          <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[10.5px] font-medium ${p.basis.includes('DE') ? 'bg-navy-50 text-navy-800' : 'bg-teal-50 text-teal-800'}">${p.basis}</span></td>
+          <td class="p-2.5 text-slate-600">${p.role}</td>
+        </tr>
+      `).join('');
+    }
+
+    function filterParamTable() {
+      renderParamTable(document.getElementById('param-search').value);
+    }
+
+    function runLab(presetId, mode4) {
+      applyPreset(presetId);
+      setChart4Mode(mode4);
+      document.getElementById('simulator').scrollIntoView({ behavior: 'smooth' });
+      showToast(`Loaded "${PRESETS[presetId].label}" in simulator.`);
+    }
+
+    // =========================================================================
+    // 8. OPEN SCIENCE EXPORT & CLIPBOARD UTILITIES (NO alert/confirm)
+    // =========================================================================
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = message;
+      toast.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-3', 'opacity-0');
+      });
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => {
+        toast.classList.add('translate-y-3', 'opacity-0');
+        setTimeout(() => toast.classList.add('hidden'), 300);
+      }, 2800);
+    }
+
+    function copyTextFallback(text, successMsg) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg);
+      } catch (e) {
+        showToast('Copy failed — please select text manually.');
+      }
+      document.body.removeChild(ta);
+    }
+
+    function copyCitation(format) {
+      if (format === 'bibtex') {
+        const bib = document.getElementById('bibtex-box').textContent;
+        copyTextFallback(bib, 'BibTeX citation copied to clipboard.');
+      } else {
+        const apa = 'Parra Valencia, J. A., Marín, B., Pabón, S., & Mossos, N. (2026). Escaping the Indicator Trap: A Multi-Methodology Viable System Model (VSM) and System Dynamics Assessment of Reactive Welfare, Labor Informality, Adjusted Multidimensional Poverty (MPI_Adjusted), and Employment Quality Index (ICE) in Cali, Colombia (2010–2040). Systems (MDPI). https://doi.org/10.5281/zenodo.22962097';
+        copyTextFallback(apa, 'APA citation copied to clipboard.');
+      }
+    }
+
+    function copyParamsJSON() {
+      const payload = {
+        scenario: currentConfig.label,
+        horizon: '2010-2040',
+        policy_activation_year: 2026,
+        parameters: {
+          s_ipm: currentConfig.s5Paradigm,
+          nnaj_floor_pct: currentConfig.nnajFloor,
+          grace_period_months: currentConfig.graceMonths,
+          mu_sisben_effective: +computeMuSisben(currentConfig).toFixed(4),
+          sigma_audit_sensitivity: currentConfig.sigma,
+          punitive_purge_surge: currentConfig.punitiveSurge,
+          tau_form_years: currentConfig.tauForm,
+          g_real_pct: currentConfig.gReal,
+          extreme_gdp_shock_50pct: currentConfig.gdpShock
+        }
+      };
+      copyTextFallback(JSON.stringify(payload, null, 2), 'Current configuration JSON copied to clipboard.');
+    }
+
+    function exportCurrentCSV() {
+      if (!lastSimData) return;
+      const s = lastSimData;
+      const headers = ['Year', 'Informality_Pct', 'Informal_Workers', 'Youth_Capabilities_CIU', 'Treasury_COP_B', 'Extreme_Poverty_Pct', 'Structural_IPM_Pct', 'MPI_Adjusted', 'ICE', 'Indicator_Trap_IT', 'Local_Tax_COP_B'];
+      const lines = [headers.join(',')];
+      for (let i = 0; i < s.years.length; i++) {
+        lines.push([
+          s.years[i], s.I_rate[i], s.P_inf[i], s.C_H[i], s.P_inv[i],
+          s.P_mon[i], s.IPM[i], s.MPI_Adj[i], s.ICE[i], s.IT[i], s.T_loc[i]
+        ].join(','));
+      }
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cali_indicator_trap_${activePresetId}_2010_2040.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('CSV simulation dataset downloaded (2010–2040).');
+    }
+
+    // =========================================================================
+    // 9. BOOTSTRAP ON WINDOW LOAD
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      baselineSimData = runSimulation(PRESETS.baseline);
+      initCharts();
+      renderParamTable();
+      applyPreset('baseline');
+    });
+  </script>
+</body>
+</html>
